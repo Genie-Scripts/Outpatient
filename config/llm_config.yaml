@@ -1,7 +1,7 @@
-# LM Studio 接続設定
-# LM Studio を OpenAI互換サーバとして起動し、推奨モデル（Qwen2.5-14B-Instruct Q4_K_M 等）をロードすること
-endpoint: http://localhost:1234/v1/chat/completions
-model: local-model
+# Ollama 接続設定
+# Ollama を OpenAI互換サーバとして起動し、推奨モデル（Qwen2.5-14B-Instruct Q4_K_M 等）をロードすること
+endpoint: http://localhost:11434/v1/chat/completions
+model: ki-krugle-jp/llm-jp-4-8b-thinking:q4_k_m
 temperature: 0.3
 max_tokens: 500
 timeout: 120

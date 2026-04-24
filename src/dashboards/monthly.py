@@ -1,6 +1,6 @@
 """月次管理ダッシュボード生成。
 
-集計CSV（data/aggregated/YYYY-MM/）を読み、12ヶ月分のトレンドを構築して
+集計CSV（data/aggregated/YYYY-MM/）を読み、6ヶ月分のトレンドを構築して
 templates/monthly.html にデータ埋込みで出力する。
 """
 from __future__ import annotations
@@ -14,11 +14,14 @@ from typing import Any
 import pandas as pd
 
 from src.core.classify import DeptClassifier
-from src.core.data_loader import load_aggregated_data
+from src.core.data_loader import AggregatedData, load_aggregated_data, load_last_n_months
 from src.core.highlights import extract_highlights
 from src.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
+
+RARE_SLOT_THRESHOLD = 5
+DOCTOR_LIMIT = 10
 
 
 def _load_targets(targets_path: Path) -> dict[str, dict[str, float]]:
@@ -37,19 +40,109 @@ def _load_targets(targets_path: Path) -> dict[str, dict[str, float]]:
     return targets
 
 
+def _build_tz_detail(data: AggregatedData, dept: str) -> dict[str, int]:
+    """当月の時間帯別件数を返す。"""
+    sub = data.dept_timezone[data.dept_timezone["診療科名"] == dept]
+    def _sum(zone: str) -> int:
+        return int(sub[sub["時間帯ゾーン"] == zone]["件数"].sum())
+    return {
+        "am": _sum("午前(〜12時)"),
+        "pm1": _sum("午後前半(12-15時)"),
+        "pm2": _sum("午後後半(15-17時)"),
+        "eve": _sum("夕方以降(17時〜)"),
+    }
+
+
+def _build_doctor_detail(data: AggregatedData, dept: str) -> list[dict[str, Any]]:
+    """当月の医師別件数（匿名・上位N名）を返す。"""
+    sub = data.doctor_summary[data.doctor_summary["診療科名"] == dept]
+    if sub.empty:
+        return []
+    agg = (
+        sub.groupby("予約担当者匿名ID")
+        .apply(lambda g: pd.Series({
+            "total": int(g["件数"].sum()),
+            "sho": int(g[g["初再診区分"] == "初診"]["件数"].sum()),
+        }))
+        .sort_values("total", ascending=False)
+        .head(DOCTOR_LIMIT)
+        .reset_index()
+    )
+    rows = []
+    for i, r in enumerate(agg.itertuples(index=False), start=1):
+        label = chr(64 + i) if i <= 26 else str(i)
+        rate = round(r.sho / r.total * 100, 1) if r.total > 0 else 0.0
+        rows.append({"n": f"医師{label}", "total": int(r.total), "sho": int(r.sho), "rate": rate})
+    return rows
+
+
+def _build_slot_detail(
+    slot_frames: list[pd.DataFrame], dept: str
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """6ヶ月分の予約枠データから rare / saijyu / kairi を返す。"""
+    combined = pd.concat(slot_frames, ignore_index=True)
+    sub = combined[combined["診療科名"] == dept]
+    if sub.empty:
+        return [], [], []
+
+    pivot = (
+        sub.groupby(["予約名称", "初再診区分"], dropna=False)["件数"]
+        .sum().unstack(fill_value=0)
+    )
+    sho_col = pivot.get("初診", pd.Series(0, index=pivot.index))
+    sai_col = pivot.get("再診", pd.Series(0, index=pivot.index))
+    total_col = sho_col + sai_col
+
+    rare, saijyu, kairi = [], [], []
+    for name in total_col.index:
+        t = int(total_col[name])
+        s = int(sho_col.get(name, 0))
+        r = round(s / t * 100, 1) if t > 0 else 0.0
+        entry = {"n": str(name), "t": t, "r": r}
+        if t < RARE_SLOT_THRESHOLD:
+            rare.append(entry)
+        if t >= 20:
+            saijyu.append(entry)
+        if any(kw in str(name) for kw in ("初診",)) and t > 0:
+            sai = int(sai_col.get(name, 0))
+            if t > 0 and sai / t >= 0.5:
+                kairi.append(entry)
+
+    rare.sort(key=lambda x: x["t"])
+    saijyu.sort(key=lambda x: -x["t"])
+    kairi.sort(key=lambda x: -x["t"])
+    return rare[:5], saijyu[:5], kairi[:5]
+
+
 def _build_dashboard_data(
     aggregated_root: Path,
     month: str,
     classifier: DeptClassifier,
     user_targets: dict[str, dict[str, float]],
+    n_months: int = 6,
 ) -> dict[str, Any]:
-    """対象月を最終月として、過去分も含めた12ヶ月のトレンドデータを構築。"""
-    data = load_aggregated_data(aggregated_root, month)
-    kpi = data.referral_kpi
-    rr = data.reverse_referral
-
-    months = sorted(kpi["月"].astype(str).unique().tolist())
+    """対象月を最終月として、過去n_months分のトレンドデータを構築。"""
+    months = load_last_n_months(aggregated_root, month, n=n_months)
     if not months:
+        raise ValueError(f"集計ディレクトリが見つかりません: {aggregated_root}")
+
+    kpi_frames: list[pd.DataFrame] = []
+    rr_frames: list[pd.DataFrame] = []
+    slot_frames: list[pd.DataFrame] = []
+    all_data: list[AggregatedData] = []
+
+    for m in months:
+        d = load_aggregated_data(aggregated_root, m)
+        all_data.append(d)
+        kpi_frames.append(d.referral_kpi)
+        rr_frames.append(d.reverse_referral)
+        slot_frames.append(d.slot_analysis)
+
+    kpi = pd.concat(kpi_frames, ignore_index=True)
+    rr = pd.concat(rr_frames, ignore_index=True)
+    current_data = all_data[-1]  # 当月
+
+    if kpi.empty:
         raise ValueError("集計CSVに月データがありません")
 
     month_labels = [m.split("-")[1].lstrip("0") + "月" for m in months]
@@ -64,6 +157,8 @@ def _build_dashboard_data(
     kusuri = rr[(rr["診療区分"] == "薬のみ") & (rr["初再診区分"] == "再診")]
 
     depts_data: list[dict[str, Any]] = []
+    detail: dict[str, Any] = {}
+
     for dept_name in kpi["診療科名"].unique():
         if not classifier.is_evaluation_target(dept_name):
             continue
@@ -112,6 +207,7 @@ def _build_dashboard_data(
         dept_type = classifier.get_type(dept_name)
         type_key = {"外科系": "geka", "内科系": "naika"}.get(dept_type, "other")
 
+        # 当月（最終インデックス）の値を _apr フィールドとして追加
         depts_data.append({
             "name": dept_name,
             "type": type_key,
@@ -125,7 +221,24 @@ def _build_dashboard_data(
             "sho_target": sho_target,
             "kus_target": kus_target,
             "sps_target": sps_target,
+            # テンプレートが参照する当月単体フィールド
+            "sho_apr": sho[-1],
+            "sai_apr": sai[-1],
+            "kus_apr": kus_m[-1],
+            "cand_apr": cand_m[-1],
+            "total_apr": total[-1],
+            "sps_apr": sps_m[-1],
         })
+
+        # detail: 当月の時間帯・医師・枠ランキング
+        rare, saijyu, kairi = _build_slot_detail(slot_frames, dept_name)
+        detail[dept_name] = {
+            "tz": _build_tz_detail(current_data, dept_name),
+            "doctors": _build_doctor_detail(current_data, dept_name),
+            "rare": rare,
+            "saijyu": saijyu,
+            "kairi": kairi,
+        }
 
     depts_data.sort(key=lambda x: x["avg_monthly"], reverse=True)
 
@@ -139,11 +252,16 @@ def _build_dashboard_data(
         "months": months,
         "monthLabels": month_labels,
         "depts": depts_data,
+        "detail": detail,
         "total_sho_monthly": total_sho_monthly,
         "total_sai_monthly": total_sai_monthly,
         "total_kus_monthly": total_kus_monthly,
         "total_cand_monthly": total_cand_monthly,
         "total_monthly": total_monthly,
+        # テンプレートが参照する当月単体フィールド（配列の末尾）
+        "total_sho_apr": total_sho_monthly[-1],
+        "total_sai_apr": total_sai_monthly[-1],
+        "total_kus_apr": total_kus_monthly[-1],
         "global_sho_target": sum(d["sho_target"] for d in depts_data),
         "global_kus_target": sum(d["kus_target"] for d in depts_data),
         "generated_at": datetime.now().isoformat(),

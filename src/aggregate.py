@@ -6,10 +6,13 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+
+_ANON_FILE_RE = re.compile(r"^raw_data_(\d{4}-\d{2})\.csv$")
 
 logger = logging.getLogger(__name__)
 
@@ -286,3 +289,34 @@ def aggregate_monthly_data(
         total_rows=len(df),
         generated_files=generated,
     )
+
+
+def aggregate_all_months(
+    anon_dir: Path,
+    output_dir: Path,
+) -> list[AggregationResult]:
+    """匿名化済みディレクトリ内の全月CSVを集計する。
+
+    ファイル名パターン: raw_data_YYYY-MM.csv
+
+    Args:
+        anon_dir: 匿名化済みCSVのディレクトリ（data/raw/anonymized/）
+        output_dir: 集計CSV出力先（data/aggregated/）
+
+    Returns:
+        月ごとの AggregationResult リスト（月順）。
+    """
+    files = sorted(
+        f for f in anon_dir.glob("*.csv")
+        if _ANON_FILE_RE.match(f.name)
+    )
+    if not files:
+        raise FileNotFoundError(f"匿名化済みCSVが見つかりません: {anon_dir}")
+
+    results: list[AggregationResult] = []
+    for f in files:
+        m = _ANON_FILE_RE.match(f.name)
+        month = m.group(1) if m else f.stem
+        results.append(aggregate_monthly_data(f, output_dir, month))
+
+    return results

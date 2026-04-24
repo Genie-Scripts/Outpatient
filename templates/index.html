@@ -1,0 +1,47 @@
+<div class="card">
+  <h2>月次管理ダッシュボード</h2>
+  <p>全診療科の KPI（初診率・紹介率・未来院率など）を月次トレンドで俯瞰。</p>
+  <ul class="nav-list">
+    {% for m in monthly_links %}
+    <li><a href="{{ m.href }}">{{ m.label }}</a></li>
+    {% endfor %}
+    {% if not monthly_links %}
+    <li class="site-meta">まだ生成された月次ダッシュボードはありません。</li>
+    {% endif %}
+  </ul>
+</div>
+
+<div class="card">
+  <h2>診療科別 深掘り</h2>
+  <p>診療科ごとの時間帯分布・医師別・予約枠内訳・逆紹介候補を分析。</p>
+  <ul class="nav-list">
+    {% for d in dept_links %}
+    <li><a href="{{ d.href }}">{{ d.label }}</a></li>
+    {% endfor %}
+    {% if not dept_links %}
+    <li class="site-meta">まだ生成された診療科深掘りダッシュボードはありません。</li>
+    {% endif %}
+  </ul>
+</div>
+
+<div class="card">
+  <h2>予約枠 再設計提案</h2>
+  <ul class="nav-list">
+    {% if slot_redesign_href %}
+    <li><a href="{{ slot_redesign_href }}">予約枠再設計（全科一覧）</a></li>
+    {% else %}
+    <li class="site-meta">未生成</li>
+    {% endif %}
+  </ul>
+</div>
+
+<div class="card">
+  <h2>医師別 深掘り</h2>
+  <ul class="nav-list">
+    {% if doctor_analysis_href %}
+    <li><a href="{{ doctor_analysis_href }}">医師別分析</a></li>
+    {% else %}
+    <li class="site-meta">未生成</li>
+    {% endif %}
+  </ul>
+</div>

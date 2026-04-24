@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>外来効率化ダッシュボード</title>
+<style>/* 外来効率化ダッシュボード 共通テーマ（ウォームライト） */
+:root {
+  --color-bg: #fdfaf4;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f5f0e6;
+  --color-text: #2d2a26;
+  --color-text-muted: #6b6660;
+  --color-border: #e5dfd2;
+  --color-primary: #b25c2e;
+  --color-primary-weak: #f0d8c5;
+  --color-accent: #3d6b7d;
+  --color-naika: #5b8a72;
+  --color-geka: #b25c2e;
+  --color-other: #9a7c4e;
+  --color-good: #3d7a4d;
+  --color-warn: #c98a2a;
+  --color-bad: #b8413c;
+  --radius: 6px;
+  --shadow-card: 0 1px 3px rgba(45, 42, 38, 0.08);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN",
+               "Yu Gothic", Meiryo, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+/* Header */
+.site-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.site-title { font-size: 18px; font-weight: 600; margin: 0; }
+.site-meta { color: var(--color-text-muted); font-size: 12px; }
+
+/* Cards */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 16px;
+}
+.card h2 { margin-top: 0; font-size: 16px; }
+.card h3 { font-size: 14px; margin-top: 16px; margin-bottom: 8px; }
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--color-border); }
+th { background: var(--color-surface-alt); font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Grades */
+.grade {
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  font-size: 12px;
+}
+.grade-S { background: var(--color-good); }
+.grade-A { background: #6ba074; }
+.grade-B { background: var(--color-warn); }
+.grade-C { background: #d87f3e; }
+.grade-D { background: var(--color-bad); }
+
+/* Type badges */
+.type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #fff;
+}
+.type-naika { background: var(--color-naika); }
+.type-geka { background: var(--color-geka); }
+.type-other { background: var(--color-other); }
+
+/* Nav links */
+.nav-list { list-style: none; padding: 0; margin: 0; }
+.nav-list li { margin-bottom: 6px; }
+.nav-list a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.nav-list a:hover { text-decoration: underline; }
+
+/* Chart wrappers */
+.chart-wrap { position: relative; height: 280px; }
+.chart-wrap-sm { position: relative; height: 180px; }
+
+footer.site-footer {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  padding: 16px 24px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <h1 class="site-title">外来効率化ダッシュボード</h1>
+  <div class="site-meta">生成: 2026-04-24 12:22</div>
+</header>
+
+<main class="container">
+<div class="card">
+  <h2>月次管理ダッシュボード</h2>
+  <p>全診療科の KPI（初診率・紹介率・未来院率など）を月次トレンドで俯瞰。</p>
+  <ul class="nav-list">
+    
+    <li><a href="monthly/2026-04.html">2026-04 月次</a></li>
+    
+    <li><a href="monthly/2026-03.html">2026-03 月次</a></li>
+    
+    <li><a href="monthly/2026-02.html">2026-02 月次</a></li>
+    
+    <li><a href="monthly/2026-01.html">2026-01 月次</a></li>
+    
+    <li><a href="monthly/2025-12.html">2025-12 月次</a></li>
+    
+    <li><a href="monthly/2025-11.html">2025-11 月次</a></li>
+    
+    
+  </ul>
+</div>
+
+<div class="card">
+  <h2>診療科別 深掘り</h2>
+  <p>診療科ごとの時間帯分布・医師別・予約枠内訳・逆紹介候補を分析。</p>
+  <ul class="nav-list">
+    
+    <li><a href="dept/2026-04/AL.html">2026-04 / AL</a></li>
+    
+    <li><a href="dept/2026-04/BR.html">2026-04 / BR</a></li>
+    
+    <li><a href="dept/2026-04/CS.html">2026-04 / CS</a></li>
+    
+    <li><a href="dept/2026-04/CV.html">2026-04 / CV</a></li>
+    
+    <li><a href="dept/2026-04/DB.html">2026-04 / DB</a></li>
+    
+    <li><a href="dept/2026-04/DM.html">2026-04 / DM</a></li>
+    
+    <li><a href="dept/2026-04/E.html">2026-04 / E</a></li>
+    
+    <li><a href="dept/2026-04/ENT.html">2026-04 / ENT</a></li>
+    
+    <li><a href="dept/2026-04/ER.html">2026-04 / ER</a></li>
+    
+    <li><a href="dept/2026-04/G.html">2026-04 / G</a></li>
+    
+    <li><a href="dept/2026-04/GI.html">2026-04 / GI</a></li>
+    
+    <li><a href="dept/2026-04/GM.html">2026-04 / GM</a></li>
+    
+    <li><a href="dept/2026-04/GS.html">2026-04 / GS</a></li>
+    
+    <li><a href="dept/2026-04/HE.html">2026-04 / HE</a></li>
+    
+    <li><a href="dept/2026-04/IM.html">2026-04 / IM</a></li>
+    
+    <li><a href="dept/2026-04/MN.html">2026-04 / MN</a></li>
+    
+    <li><a href="dept/2026-04/NE.html">2026-04 / NE</a></li>
+    
+    <li><a href="dept/2026-04/NR.html">2026-04 / NR</a></li>
+    
+    <li><a href="dept/2026-04/NS.html">2026-04 / NS</a></li>
+    
+    <li><a href="dept/2026-04/ON.html">2026-04 / ON</a></li>
+    
+    <li><a href="dept/2026-04/OR.html">2026-04 / OR</a></li>
+    
+    <li><a href="dept/2026-04/OS.html">2026-04 / OS</a></li>
+    
+    <li><a href="dept/2026-04/PD.html">2026-04 / PD</a></li>
+    
+    <li><a href="dept/2026-04/PS.html">2026-04 / PS</a></li>
+    
+    <li><a href="dept/2026-04/RH.html">2026-04 / RH</a></li>
+    
+    <li><a href="dept/2026-04/RS.html">2026-04 / RS</a></li>
+    
+    <li><a href="dept/2026-04/RS2.html">2026-04 / RS2</a></li>
+    
+    <li><a href="dept/2026-04/RT.html">2026-04 / RT</a></li>
+    
+    <li><a href="dept/2026-04/U.html">2026-04 / U</a></li>
+    
+    <li><a href="dept/2026-03/AL.html">2026-03 / AL</a></li>
+    
+    <li><a href="dept/2026-03/BR.html">2026-03 / BR</a></li>
+    
+    <li><a href="dept/2026-03/CS.html">2026-03 / CS</a></li>
+    
+    <li><a href="dept/2026-03/CV.html">2026-03 / CV</a></li>
+    
+    <li><a href="dept/2026-03/DM.html">2026-03 / DM</a></li>
+    
+    <li><a href="dept/2026-03/E.html">2026-03 / E</a></li>
+    
+    <li><a href="dept/2026-03/ENT.html">2026-03 / ENT</a></li>
+    
+    <li><a href="dept/2026-03/ER.html">2026-03 / ER</a></li>
+    
+    <li><a href="dept/2026-03/G.html">2026-03 / G</a></li>
+    
+    <li><a href="dept/2026-03/GI.html">2026-03 / GI</a></li>
+    
+    <li><a href="dept/2026-03/GM.html">2026-03 / GM</a></li>
+    
+    <li><a href="dept/2026-03/GS.html">2026-03 / GS</a></li>
+    
+    <li><a href="dept/2026-03/HE.html">2026-03 / HE</a></li>
+    
+    <li><a href="dept/2026-03/IM.html">2026-03 / IM</a></li>
+    
+    <li><a href="dept/2026-03/MN.html">2026-03 / MN</a></li>
+    
+    <li><a href="dept/2026-03/NE.html">2026-03 / NE</a></li>
+    
+    <li><a href="dept/2026-03/NR.html">2026-03 / NR</a></li>
+    
+    <li><a href="dept/2026-03/NS.html">2026-03 / NS</a></li>
+    
+    <li><a href="dept/2026-03/ON.html">2026-03 / ON</a></li>
+    
+    <li><a href="dept/2026-03/OR.html">2026-03 / OR</a></li>
+    
+    <li><a href="dept/2026-03/OS.html">2026-03 / OS</a></li>
+    
+    <li><a href="dept/2026-03/PD.html">2026-03 / PD</a></li>
+    
+    <li><a href="dept/2026-03/PS.html">2026-03 / PS</a></li>
+    
+    <li><a href="dept/2026-03/RH.html">2026-03 / RH</a></li>
+    
+    <li><a href="dept/2026-03/RS.html">2026-03 / RS</a></li>
+    
+    <li><a href="dept/2026-03/RS2.html">2026-03 / RS2</a></li>
+    
+    <li><a href="dept/2026-03/RT.html">2026-03 / RT</a></li>
+    
+    <li><a href="dept/2026-03/U.html">2026-03 / U</a></li>
+    
+    <li><a href="dept/2026-02/AL.html">2026-02 / AL</a></li>
+    
+    <li><a href="dept/2026-02/BR.html">2026-02 / BR</a></li>
+    
+    <li><a href="dept/2026-02/CS.html">2026-02 / CS</a></li>
+    
+    <li><a href="dept/2026-02/CV.html">2026-02 / CV</a></li>
+    
+    <li><a href="dept/2026-02/DM.html">2026-02 / DM</a></li>
+    
+    <li><a href="dept/2026-02/E.html">2026-02 / E</a></li>
+    
+    <li><a href="dept/2026-02/ENT.html">2026-02 / ENT</a></li>
+    
+    <li><a href="dept/2026-02/ER.html">2026-02 / ER</a></li>
+    
+    <li><a href="dept/2026-02/G.html">2026-02 / G</a></li>
+    
+    <li><a href="dept/2026-02/GI.html">2026-02 / GI</a></li>
+    
+    <li><a href="dept/2026-02/GM.html">2026-02 / GM</a></li>
+    
+    <li><a href="dept/2026-02/GS.html">2026-02 / GS</a></li>
+    
+    <li><a href="dept/2026-02/HE.html">2026-02 / HE</a></li>
+    
+    <li><a href="dept/2026-02/IM.html">2026-02 / IM</a></li>
+    
+    <li><a href="dept/2026-02/MN.html">2026-02 / MN</a></li>
+    
+    <li><a href="dept/2026-02/NE.html">2026-02 / NE</a></li>
+    
+    <li><a href="dept/2026-02/NR.html">2026-02 / NR</a></li>
+    
+    <li><a href="dept/2026-02/NS.html">2026-02 / NS</a></li>
+    
+    <li><a href="dept/2026-02/ON.html">2026-02 / ON</a></li>
+    
+    <li><a href="dept/2026-02/OR.html">2026-02 / OR</a></li>
+    
+    <li><a href="dept/2026-02/OS.html">2026-02 / OS</a></li>
+    
+    <li><a href="dept/2026-02/PD.html">2026-02 / PD</a></li>
+    
+    <li><a href="dept/2026-02/PS.html">2026-02 / PS</a></li>
+    
+    <li><a href="dept/2026-02/RH.html">2026-02 / RH</a></li>
+    
+    <li><a href="dept/2026-02/RS.html">2026-02 / RS</a></li>
+    
+    <li><a href="dept/2026-02/RS2.html">2026-02 / RS2</a></li>
+    
+    <li><a href="dept/2026-02/RT.html">2026-02 / RT</a></li>
+    
+    <li><a href="dept/2026-02/U.html">2026-02 / U</a></li>
+    
+    <li><a href="dept/2026-01/AL.html">2026-01 / AL</a></li>
+    
+    <li><a href="dept/2026-01/BR.html">2026-01 / BR</a></li>
+    
+    <li><a href="dept/2026-01/CS.html">2026-01 / CS</a></li>
+    
+    <li><a href="dept/2026-01/CV.html">2026-01 / CV</a></li>
+    
+    <li><a href="dept/2026-01/DM.html">2026-01 / DM</a></li>
+    
+    <li><a href="dept/2026-01/E.html">2026-01 / E</a></li>
+    
+    <li><a href="dept/2026-01/ENT.html">2026-01 / ENT</a></li>
+    
+    <li><a href="dept/2026-01/ER.html">2026-01 / ER</a></li>
+    
+    <li><a href="dept/2026-01/G.html">2026-01 / G</a></li>
+    
+    <li><a href="dept/2026-01/GI.html">2026-01 / GI</a></li>
+    
+    <li><a href="dept/2026-01/GM.html">2026-01 / GM</a></li>
+    
+    <li><a href="dept/2026-01/GS.html">2026-01 / GS</a></li>
+    
+    <li><a href="dept/2026-01/HE.html">2026-01 / HE</a></li>
+    
+    <li><a href="dept/2026-01/IM.html">2026-01 / IM</a></li>
+    
+    <li><a href="dept/2026-01/MN.html">2026-01 / MN</a></li>
+    
+    <li><a href="dept/2026-01/NE.html">2026-01 / NE</a></li>
+    
+    <li><a href="dept/2026-01/NR.html">2026-01 / NR</a></li>
+    
+    <li><a href="dept/2026-01/NS.html">2026-01 / NS</a></li>
+    
+    <li><a href="dept/2026-01/ON.html">2026-01 / ON</a></li>
+    
+    <li><a href="dept/2026-01/OR.html">2026-01 / OR</a></li>
+    
+    <li><a href="dept/2026-01/OS.html">2026-01 / OS</a></li>
+    
+    <li><a href="dept/2026-01/PD.html">2026-01 / PD</a></li>
+    
+    <li><a href="dept/2026-01/PS.html">2026-01 / PS</a></li>
+    
+    <li><a href="dept/2026-01/RH.html">2026-01 / RH</a></li>
+    
+    <li><a href="dept/2026-01/RS.html">2026-01 / RS</a></li>
+    
+    <li><a href="dept/2026-01/RS2.html">2026-01 / RS2</a></li>
+    
+    <li><a href="dept/2026-01/RT.html">2026-01 / RT</a></li>
+    
+    <li><a href="dept/2026-01/U.html">2026-01 / U</a></li>
+    
+    <li><a href="dept/2025-12/AL.html">2025-12 / AL</a></li>
+    
+    <li><a href="dept/2025-12/BR.html">2025-12 / BR</a></li>
+    
+    <li><a href="dept/2025-12/CS.html">2025-12 / CS</a></li>
+    
+    <li><a href="dept/2025-12/CV.html">2025-12 / CV</a></li>
+    
+    <li><a href="dept/2025-12/DM.html">2025-12 / DM</a></li>
+    
+    <li><a href="dept/2025-12/E.html">2025-12 / E</a></li>
+    
+    <li><a href="dept/2025-12/ENT.html">2025-12 / ENT</a></li>
+    
+    <li><a href="dept/2025-12/ER.html">2025-12 / ER</a></li>
+    
+    <li><a href="dept/2025-12/G.html">2025-12 / G</a></li>
+    
+    <li><a href="dept/2025-12/GI.html">2025-12 / GI</a></li>
+    
+    <li><a href="dept/2025-12/GM.html">2025-12 / GM</a></li>
+    
+    <li><a href="dept/2025-12/GS.html">2025-12 / GS</a></li>
+    
+    <li><a href="dept/2025-12/HE.html">2025-12 / HE</a></li>
+    
+    <li><a href="dept/2025-12/IM.html">2025-12 / IM</a></li>
+    
+    <li><a href="dept/2025-12/MN.html">2025-12 / MN</a></li>
+    
+    <li><a href="dept/2025-12/NE.html">2025-12 / NE</a></li>
+    
+    <li><a href="dept/2025-12/NR.html">2025-12 / NR</a></li>
+    
+    <li><a href="dept/2025-12/NS.html">2025-12 / NS</a></li>
+    
+    <li><a href="dept/2025-12/ON.html">2025-12 / ON</a></li>
+    
+    <li><a href="dept/2025-12/OR.html">2025-12 / OR</a></li>
+    
+    <li><a href="dept/2025-12/OS.html">2025-12 / OS</a></li>
+    
+    <li><a href="dept/2025-12/PD.html">2025-12 / PD</a></li>
+    
+    <li><a href="dept/2025-12/PS.html">2025-12 / PS</a></li>
+    
+    <li><a href="dept/2025-12/RH.html">2025-12 / RH</a></li>
+    
+    <li><a href="dept/2025-12/RS.html">2025-12 / RS</a></li>
+    
+    <li><a href="dept/2025-12/RS2.html">2025-12 / RS2</a></li>
+    
+    <li><a href="dept/2025-12/RT.html">2025-12 / RT</a></li>
+    
+    <li><a href="dept/2025-12/U.html">2025-12 / U</a></li>
+    
+    <li><a href="dept/2025-11/AL.html">2025-11 / AL</a></li>
+    
+    <li><a href="dept/2025-11/BR.html">2025-11 / BR</a></li>
+    
+    <li><a href="dept/2025-11/CS.html">2025-11 / CS</a></li>
+    
+    <li><a href="dept/2025-11/CV.html">2025-11 / CV</a></li>
+    
+    <li><a href="dept/2025-11/DM.html">2025-11 / DM</a></li>
+    
+    <li><a href="dept/2025-11/E.html">2025-11 / E</a></li>
+    
+    <li><a href="dept/2025-11/ENT.html">2025-11 / ENT</a></li>
+    
+    <li><a href="dept/2025-11/ER.html">2025-11 / ER</a></li>
+    
+    <li><a href="dept/2025-11/G.html">2025-11 / G</a></li>
+    
+    <li><a href="dept/2025-11/GI.html">2025-11 / GI</a></li>
+    
+    <li><a href="dept/2025-11/GM.html">2025-11 / GM</a></li>
+    
+    <li><a href="dept/2025-11/GS.html">2025-11 / GS</a></li>
+    
+    <li><a href="dept/2025-11/HE.html">2025-11 / HE</a></li>
+    
+    <li><a href="dept/2025-11/IM.html">2025-11 / IM</a></li>
+    
+    <li><a href="dept/2025-11/MN.html">2025-11 / MN</a></li>
+    
+    <li><a href="dept/2025-11/NE.html">2025-11 / NE</a></li>
+    
+    <li><a href="dept/2025-11/NR.html">2025-11 / NR</a></li>
+    
+    <li><a href="dept/2025-11/NS.html">2025-11 / NS</a></li>
+    
+    <li><a href="dept/2025-11/ON.html">2025-11 / ON</a></li>
+    
+    <li><a href="dept/2025-11/OR.html">2025-11 / OR</a></li>
+    
+    <li><a href="dept/2025-11/OS.html">2025-11 / OS</a></li>
+    
+    <li><a href="dept/2025-11/PD.html">2025-11 / PD</a></li>
+    
+    <li><a href="dept/2025-11/PS.html">2025-11 / PS</a></li>
+    
+    <li><a href="dept/2025-11/RH.html">2025-11 / RH</a></li>
+    
+    <li><a href="dept/2025-11/RS.html">2025-11 / RS</a></li>
+    
+    <li><a href="dept/2025-11/RS2.html">2025-11 / RS2</a></li>
+    
+    <li><a href="dept/2025-11/RT.html">2025-11 / RT</a></li>
+    
+    <li><a href="dept/2025-11/U.html">2025-11 / U</a></li>
+    
+    
+  </ul>
+</div>
+
+<div class="card">
+  <h2>予約枠 再設計提案</h2>
+  <ul class="nav-list">
+    
+    <li><a href="slot_redesign.html">予約枠再設計（全科一覧）</a></li>
+    
+  </ul>
+</div>
+
+<div class="card">
+  <h2>医師別 深掘り</h2>
+  <ul class="nav-list">
+    
+    <li><a href="doctor_analysis.html">医師別分析</a></li>
+    
+  </ul>
+</div>
+</main>
+
+<footer class="site-footer">
+  外来効率化ダッシュボード / 東京医療センター経営企画室
+</footer>
+
+
+</body>
+</html>

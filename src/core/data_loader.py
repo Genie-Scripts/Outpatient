@@ -72,3 +72,39 @@ def load_multi_month(
 ) -> dict[str, AggregatedData]:
     """複数月をまとめて読み込む。"""
     return {m: load_aggregated_data(aggregated_root, m) for m in months}
+
+
+def load_last_n_months(
+    aggregated_root: Path, current_month: str, n: int = 6
+) -> list[str]:
+    """current_month を含む直近 n ヶ月の月リストを返す（存在するディレクトリのみ）。
+
+    Args:
+        aggregated_root: data/aggregated/ のパス
+        current_month: 末尾月（"YYYY-MM"）
+        n: 取得上限月数
+
+    Returns:
+        昇順の月リスト。n に満たない場合は警告ログを出して存在分のみ返す。
+    """
+    import logging
+    import re
+
+    logger = logging.getLogger(__name__)
+    pat = re.compile(r"^\d{4}-\d{2}$")
+
+    available = sorted(
+        d.name
+        for d in aggregated_root.iterdir()
+        if d.is_dir() and pat.match(d.name) and d.name <= current_month
+    )
+
+    months = available[-n:]
+
+    if len(months) < n:
+        logger.warning(
+            "直近 %d ヶ月分のデータが揃っていません（%d ヶ月分のみ）: %s",
+            n, len(months), months,
+        )
+
+    return months
