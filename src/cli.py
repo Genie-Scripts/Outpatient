@@ -28,6 +28,8 @@ from src.anonymize import (
 )
 from src.dashboards.dept_drilldown import build_dept_drilldown
 from src.dashboards.doctor_analysis import build_doctor_analysis
+from src.dashboards.drug_revisit import build_drug_revisit
+from src.dashboards.hourly_heatmap import build_hourly_heatmap
 from src.dashboards.hub import build_hub_page
 from src.dashboards.monthly import build_monthly_dashboard
 from src.dashboards.slot_redesign import build_slot_redesign
@@ -254,6 +256,44 @@ def _cmd_build_doctor(
     print(f"✓ 医師別分析生成 ({latest}): {output_path}")
 
 
+def _cmd_build_heatmap(
+    month: str | None,
+    paths: dict[str, Path] = DEFAULT_PATHS,
+) -> None:
+    months = [month] if month else _detect_months(paths["anon_dir"])
+    latest = months[-1]
+    output_path = paths["docs_dir"] / "hourly_heatmap.html"
+    build_hourly_heatmap(
+        month=latest,
+        aggregated_root=paths["agg_root"],
+        templates_dir=paths["templates_dir"],
+        output_path=output_path,
+        classification_path=paths["dept_classification"],
+        theme_css=_read_static(paths["theme_css"]),
+        common_js=_read_static(paths["common_js"]),
+    )
+    print(f"✓ 曜日×時間帯ヒートマップ生成 ({latest}): {output_path}")
+
+
+def _cmd_build_drug_revisit(
+    month: str | None,
+    paths: dict[str, Path] = DEFAULT_PATHS,
+) -> None:
+    months = [month] if month else _detect_months(paths["anon_dir"])
+    latest = months[-1]
+    output_path = paths["docs_dir"] / "drug_revisit.html"
+    build_drug_revisit(
+        month=latest,
+        aggregated_root=paths["agg_root"],
+        templates_dir=paths["templates_dir"],
+        output_path=output_path,
+        classification_path=paths["dept_classification"],
+        theme_css=_read_static(paths["theme_css"]),
+        common_js=_read_static(paths["common_js"]),
+    )
+    print(f"✓ 薬再診候補スコア生成 ({latest}): {output_path}")
+
+
 def _cmd_build_hub(paths: dict[str, Path] = DEFAULT_PATHS) -> None:
     output = build_hub_page(
         docs_dir=paths["docs_dir"],
@@ -276,6 +316,8 @@ def _cmd_run_all(month: str | None, use_llm: bool, no_anon: bool = False) -> Non
     _cmd_build_dept(month, paths, use_real_names=no_anon)
     _cmd_build_slot(month, paths)
     _cmd_build_doctor(month, paths, use_real_names=no_anon)
+    _cmd_build_heatmap(month, paths)
+    _cmd_build_drug_revisit(month, paths)
     _cmd_build_hub(paths)
     print("=== 全処理完了 ===")
 
@@ -310,6 +352,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p_doc = build_sub.add_parser("doctor", help="医師別分析（最新月）")
     p_doc.add_argument("--month", default=None, help="YYYY-MM（省略時は最新月）")
 
+    p_heat = build_sub.add_parser("heatmap", help="曜日×時間帯ヒートマップ（最新月）")
+    p_heat.add_argument("--month", default=None, help="YYYY-MM（省略時は最新月）")
+
+    p_drev = build_sub.add_parser("drug-revisit", help="薬再診候補スコア（最新月）")
+    p_drev.add_argument("--month", default=None, help="YYYY-MM（省略時は最新月）")
+
     build_sub.add_parser("hub", help="ハブページ（docs/index.html）再生成")
 
     p_all = sub.add_parser("run-all", help="匿名化→集計→各ダッシュボード→ハブを一括")
@@ -343,6 +391,10 @@ def main(argv: list[str] | None = None) -> int:
                 _cmd_build_slot(args.month)
             elif args.target == "doctor":
                 _cmd_build_doctor(args.month)
+            elif args.target == "heatmap":
+                _cmd_build_heatmap(args.month)
+            elif args.target == "drug-revisit":
+                _cmd_build_drug_revisit(args.month)
             elif args.target == "hub":
                 _cmd_build_hub()
             else:

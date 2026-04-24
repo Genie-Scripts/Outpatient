@@ -232,6 +232,16 @@ def _build_extras(docs_dir: Path) -> list[dict[str, str]]:
             "desc": "医師ごとの外来パフォーマンス分析",
             "href": "doctor_analysis.html" if (docs_dir / "doctor_analysis.html").exists() else "",
         },
+        {
+            "title": "曜日×時間帯ヒートマップ",
+            "desc": "看護師配置最適化のための到着・同時並行診察数マップ",
+            "href": "hourly_heatmap.html" if (docs_dir / "hourly_heatmap.html").exists() else "",
+        },
+        {
+            "title": "薬再診候補スコア",
+            "desc": "短時間再診比率等から逆紹介候補を抽出",
+            "href": "drug_revisit.html" if (docs_dir / "drug_revisit.html").exists() else "",
+        },
     ]
 
 

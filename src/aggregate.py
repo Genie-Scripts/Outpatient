@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 _ANON_FILE_RE = re.compile(r"^raw_data_(\d{4}-\d{2})\.csv$")
@@ -17,6 +18,15 @@ _ANON_FILE_RE = re.compile(r"^raw_data_(\d{4}-\d{2})\.csv$")
 logger = logging.getLogger(__name__)
 
 DOCTOR_ID_COLUMN = "予約担当者匿名ID"
+SLOT_ID_COLUMN = "予約名称"
+
+HEATMAP_DAY_START_H = 8
+HEATMAP_DAY_END_H = 20
+HEATMAP_BIN_MIN = 30
+HEATMAP_BIN_COUNT = (HEATMAP_DAY_END_H - HEATMAP_DAY_START_H) * 60 // HEATMAP_BIN_MIN
+
+DRUG_REVISIT_SHORT_EXAM_MIN = 4
+DRUG_REVISIT_MIN_RECORDS = 10
 
 
 @dataclass
@@ -91,6 +101,11 @@ def _preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df["受付h"] = uketsuke.dt.hour
     df["受付_30min"] = uketsuke.dt.floor("30min").dt.strftime("%H:%M")
 
+    start = pd.to_datetime(df.get("開始時刻"), format="%H:%M:%S", errors="coerce")
+    end = pd.to_datetime(df.get("終了時刻"), format="%H:%M:%S", errors="coerce")
+    df["開始_分"] = start.dt.hour * 60 + start.dt.minute
+    df["終了_分"] = end.dt.hour * 60 + end.dt.minute
+
     df["診察時間_階級"] = df["診察時間"].apply(_classify_exam_time)
     df["診察待時間_階級"] = df["診察待時間"].apply(_classify_wait_time)
     df["時間帯ゾーン"] = df["受付h"].apply(_time_zone)
@@ -162,6 +177,163 @@ def _agg_referral_kpi(df: pd.DataFrame) -> pd.DataFrame:
             "未来院率": round(mirain / total * 100, 2) if total else 0,
         })
     return pd.DataFrame(rows)
+
+
+def _valid_time_mask(df: pd.DataFrame) -> pd.Series:
+    """開始・終了時刻の異常値（0:00:01、欠損、逆転など）を弾くマスク。"""
+    day_start = HEATMAP_DAY_START_H * 60
+    day_end = HEATMAP_DAY_END_H * 60
+    return (
+        df["開始_分"].notna()
+        & df["終了_分"].notna()
+        & (df["開始_分"] >= day_start)
+        & (df["開始_分"] < day_end)
+        & (df["終了_分"] > df["開始_分"])
+        & (df["診察時間"].between(0.5, 180))
+    )
+
+
+def _agg_hourly_load(df: pd.DataFrame) -> pd.DataFrame:
+    """曜日×30分刻みの到着件数と同時並行診察数を集計する。
+
+    - 到着件数_日平均: 当該(曜日, 30分ビン)における1日あたりの平均到着件数
+    - 同時並行_中央値: 各日の当該ビンでの重なり件数 → 日間の中央値
+    - 同時並行_最大: 日間の最大値（ピーク負荷）
+    ビンは 08:00-20:00（12時間 / 30分 = 24ビン）。
+    """
+    valid = df[_valid_time_mask(df)].copy()
+    if valid.empty:
+        return pd.DataFrame(columns=[
+            "診療科名", "曜日", "bin_idx", "bin_label",
+            "到着件数_日平均", "同時並行_中央値", "同時並行_最大", "該当日数",
+        ])
+
+    day_start = HEATMAP_DAY_START_H * 60
+    valid["start_bin"] = np.clip(
+        (valid["開始_分"] - day_start) // HEATMAP_BIN_MIN, 0, HEATMAP_BIN_COUNT - 1
+    ).astype(int)
+    valid["end_bin"] = np.clip(
+        (valid["終了_分"] - 1 - day_start) // HEATMAP_BIN_MIN, 0, HEATMAP_BIN_COUNT - 1
+    ).astype(int)
+
+    valid["bin_list"] = valid.apply(
+        lambda r: list(range(r["start_bin"], r["end_bin"] + 1)), axis=1
+    )
+    exploded = valid.explode("bin_list")
+    exploded["bin_idx"] = exploded["bin_list"].astype(int)
+
+    per_day = (
+        exploded.groupby(["診療科名", "予約日", "曜日", "bin_idx"])
+        .size().reset_index(name="同時並行")
+    )
+    concurrent = (
+        per_day.groupby(["診療科名", "曜日", "bin_idx"])
+        .agg(
+            同時並行_中央値=("同時並行", "median"),
+            同時並行_最大=("同時並行", "max"),
+            該当日数=("予約日", "nunique"),
+        )
+        .reset_index()
+    )
+
+    arrivals_per_day = (
+        valid.groupby(["診療科名", "予約日", "曜日", "start_bin"])
+        .size().reset_index(name="到着件数")
+        .rename(columns={"start_bin": "bin_idx"})
+    )
+    arrivals = (
+        arrivals_per_day.groupby(["診療科名", "曜日", "bin_idx"])
+        .agg(
+            到着件数_日平均=("到着件数", "mean"),
+            到着_該当日数=("予約日", "nunique"),
+        )
+        .reset_index()
+    )
+
+    merged = concurrent.merge(
+        arrivals[["診療科名", "曜日", "bin_idx", "到着件数_日平均"]],
+        on=["診療科名", "曜日", "bin_idx"],
+        how="left",
+    )
+    merged["到着件数_日平均"] = merged["到着件数_日平均"].fillna(0).round(2)
+    merged["同時並行_中央値"] = merged["同時並行_中央値"].round(1)
+    merged["同時並行_最大"] = merged["同時並行_最大"].astype(int)
+
+    def _label(idx: int) -> str:
+        total = day_start + idx * HEATMAP_BIN_MIN
+        return f"{total // 60:02d}:{total % 60:02d}"
+
+    merged["bin_label"] = merged["bin_idx"].apply(_label)
+    return merged[[
+        "診療科名", "曜日", "bin_idx", "bin_label",
+        "到着件数_日平均", "同時並行_中央値", "同時並行_最大", "該当日数",
+    ]].sort_values(["診療科名", "曜日", "bin_idx"]).reset_index(drop=True)
+
+
+def _agg_drug_revisit_score(df: pd.DataFrame) -> pd.DataFrame:
+    """医師×枠×月ごとに薬再診候補スコアを算出する。
+
+    指標:
+        - 短時間再診比率: 再診のうち診察時間 ≤ 4分 の比率
+        - 紹介状なし再診比率: 再診のうち紹介状なし の比率
+        - 診察時間中央値_再診: 再診の診察時間中央値（短いほど薬再診示唆）
+    3指標をグローバルMin-Maxで0-100に正規化し、等配分平均で合成スコア化。
+    ノイズ抑制のため 再診件数 < DRUG_REVISIT_MIN_RECORDS の行はスコア無し（NaN）。
+    """
+    sai = df[df["初再診区分"] == "再診"].copy()
+    if sai.empty:
+        return pd.DataFrame(columns=[
+            "診療科名", "医師匿名ID", "予約名称", "月",
+            "再診件数", "短時間再診件数", "短時間再診比率",
+            "紹介状なし再診件数", "紹介状なし再診比率",
+            "診察時間中央値_再診", "スコア",
+        ])
+
+    sai["is_short"] = (sai["診察時間"] <= DRUG_REVISIT_SHORT_EXAM_MIN).astype(int)
+    sai["is_no_shokai"] = (sai["紹介状有無"] != "紹介状あり").astype(int)
+
+    group = sai.groupby(
+        ["診療科名", DOCTOR_ID_COLUMN, SLOT_ID_COLUMN, "月"], dropna=False
+    )
+    agg = group.agg(
+        再診件数=("診察時間", "size"),
+        短時間再診件数=("is_short", "sum"),
+        紹介状なし再診件数=("is_no_shokai", "sum"),
+        診察時間中央値_再診=("診察時間", "median"),
+    ).reset_index().rename(columns={DOCTOR_ID_COLUMN: "医師匿名ID"})
+
+    agg["短時間再診比率"] = (agg["短時間再診件数"] / agg["再診件数"]).round(3)
+    agg["紹介状なし再診比率"] = (agg["紹介状なし再診件数"] / agg["再診件数"]).round(3)
+    agg["診察時間中央値_再診"] = agg["診察時間中央値_再診"].round(1)
+
+    scoreable = agg["再診件数"] >= DRUG_REVISIT_MIN_RECORDS
+
+    def _minmax(series: pd.Series, reverse: bool = False) -> pd.Series:
+        sub = series[scoreable]
+        if sub.empty:
+            return pd.Series([np.nan] * len(series), index=series.index)
+        lo, hi = sub.min(), sub.max()
+        if hi == lo:
+            normalized = pd.Series([50.0] * len(series), index=series.index)
+        else:
+            normalized = (series - lo) / (hi - lo) * 100
+            normalized = normalized.clip(0, 100)
+        if reverse:
+            normalized = 100 - normalized
+        normalized[~scoreable] = np.nan
+        return normalized
+
+    n1 = _minmax(agg["短時間再診比率"])
+    n2 = _minmax(agg["紹介状なし再診比率"])
+    n3 = _minmax(agg["診察時間中央値_再診"], reverse=True)
+    agg["スコア"] = ((n1 + n2 + n3) / 3).round(1)
+
+    return agg[[
+        "診療科名", "医師匿名ID", "予約名称", "月",
+        "再診件数", "短時間再診件数", "短時間再診比率",
+        "紹介状なし再診件数", "紹介状なし再診比率",
+        "診察時間中央値_再診", "スコア",
+    ]].sort_values(["診療科名", "スコア"], ascending=[True, False], na_position="last").reset_index(drop=True)
 
 
 def aggregate_monthly_data(
@@ -280,6 +452,12 @@ def aggregate_monthly_data(
     )
     _write(agg11, out / "11_dept_timezone.csv")
     generated.append("11_dept_timezone.csv")
+
+    _write(_agg_hourly_load(df), out / "12_hourly_load.csv")
+    generated.append("12_hourly_load.csv")
+
+    _write(_agg_drug_revisit_score(df), out / "13_drug_revisit_score.csv")
+    generated.append("13_drug_revisit_score.csv")
 
     logger.info("集計完了: %d行 → %d ファイル (%s)", len(df), len(generated), out)
     return AggregationResult(
