@@ -38,13 +38,14 @@
       </thead>
       <tbody>
         {% for wd in weekdays %}
-        <tr data-wd="{{ loop.index0 }}">
+        {% set wd_idx = loop.index0 %}
+        <tr data-wd="{{ wd_idx }}">
           <th class="hm-row-label">{{ wd }}</th>
           {% for m in bin_meta %}
           <td class="hm-cell
             {% if m.after_cutoff %} hm-after-cutoff{% endif %}
             {% if m.morning_peak %} hm-morning-peak{% endif %}
-          " data-wd="{{ loop.index0 }}" data-bin="{{ m.idx }}"></td>
+          " data-wd="{{ wd_idx }}" data-bin="{{ m.idx }}"></td>
           {% endfor %}
         </tr>
         {% endfor %}
