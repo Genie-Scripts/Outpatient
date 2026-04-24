@@ -21,6 +21,7 @@ import pandas as pd
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from src.aggregate import (
+    DOCTOR_HOURLY_CATEGORIES,
     DOCTOR_ID_COLUMN,
     HEATMAP_BIN_COUNT,
     HEATMAP_BIN_MIN,
@@ -31,6 +32,14 @@ from src.core.classify import DeptClassifier
 logger = logging.getLogger(__name__)
 
 _WEEKDAYS = ["月", "火", "水", "木", "金", "土"]
+_METRIC_KEYS = ("frequency", "count", "duration", "count_per_day", "duration_per_day")
+_METRIC_COLUMNS = {
+    "frequency": "出勤頻度率",
+    "count": "件数合計",
+    "duration": "実診察分数",
+    "count_per_day": "件数_日平均",
+    "duration_per_day": "実診察分数_日平均",
+}
 
 
 def _bin_labels() -> list[str]:
@@ -53,37 +62,48 @@ def _empty_matrix() -> list[list[float]]:
 
 
 def _build_dept_series(sub: pd.DataFrame) -> list[dict[str, Any]]:
-    """診療科内の医師ごとに weekday×bin の2指標行列を組み立てる。
+    """診療科内の医師ごとに 区分×weekday×bin の指標行列を組み立てる。
 
-    医師は月内総件数の多い順に並べる。
+    医師は「全体」区分の月内総件数の多い順に並べる。
+    旧CSV（区分列なし）の場合は「全体」扱いで処理する。
     """
     if sub.empty:
         return []
 
+    if "区分" not in sub.columns:
+        sub = sub.assign(区分="全体")
+    if "件数_日平均" not in sub.columns:
+        days = sub["該当日数"].replace(0, pd.NA)
+        sub = sub.assign(
+            件数_日平均=(sub["件数合計"] / days).fillna(0).round(2),
+            実診察分数_日平均=(sub["実診察分数"] / days).fillna(0).round(1),
+        )
+
+    zentai = sub[sub["区分"] == "全体"]
     totals = (
-        sub.groupby(DOCTOR_ID_COLUMN)["件数合計"].sum().sort_values(ascending=False)
+        zentai.groupby(DOCTOR_ID_COLUMN)["件数合計"].sum().sort_values(ascending=False)
     )
     doctor_ids = totals.index.tolist()
 
     rows: list[dict[str, Any]] = []
     for did in doctor_ids:
         dsub = sub[sub[DOCTOR_ID_COLUMN] == did]
-        freq = _empty_matrix()
-        count = _empty_matrix()
-        duration = _empty_matrix()
-        for _, r in dsub.iterrows():
-            wd = int(r["曜日"])
-            bi = int(r["bin_idx"])
-            if 0 <= wd < len(_WEEKDAYS) and 0 <= bi < HEATMAP_BIN_COUNT:
-                freq[wd][bi] = float(r["出勤頻度率"])
-                count[wd][bi] = float(r["件数合計"])
-                duration[wd][bi] = float(r["実診察分数"])
+        categories: dict[str, dict[str, list[list[float]]]] = {}
+        for cat in DOCTOR_HOURLY_CATEGORIES:
+            cat_sub = dsub[dsub["区分"] == cat]
+            matrices = {mk: _empty_matrix() for mk in _METRIC_KEYS}
+            for _, r in cat_sub.iterrows():
+                wd = int(r["曜日"])
+                bi = int(r["bin_idx"])
+                if not (0 <= wd < len(_WEEKDAYS)) or not (0 <= bi < HEATMAP_BIN_COUNT):
+                    continue
+                for mk, col in _METRIC_COLUMNS.items():
+                    matrices[mk][wd][bi] = float(r[col])
+            categories[cat] = matrices
         rows.append({
             "id": str(did),
             "total": int(totals.loc[did]),
-            "frequency": freq,
-            "count": count,
-            "duration": duration,
+            "categories": categories,
         })
     return rows
 
