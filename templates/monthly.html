@@ -598,55 +598,83 @@ const DATA = {{DASHBOARD_DATA_JSON}};
 // ============================================================
 // SCREEN 1: KPI cards
 // ============================================================
-const apr = 5, mar = 4;
+const apr = DATA.months.length - 1;
+const mar = Math.max(0, apr - 1);
+const hasPrev = apr > 0;
 
 // 総件数
 const totalApr = DATA.total_sho_apr + DATA.total_sai_apr;
-const totalMar = DATA.total_sho_monthly[mar] + DATA.total_sai_monthly[mar];
-const totalPct = ((totalApr/totalMar - 1)*100).toFixed(1);
+const totalMar = hasPrev ? (DATA.total_sho_monthly[mar] + DATA.total_sai_monthly[mar]) : totalApr;
+const totalPct = hasPrev ? ((totalApr/totalMar - 1)*100).toFixed(1) : '0.0';
 document.getElementById('kpi1Val').innerHTML = fmtNum(totalApr) + '<span class="kpi-unit">件</span>';
-document.getElementById('kpi1Target').textContent = `前月 ${fmtNum(totalMar)} ／ 4月実績(22日) ${fmtNum(DATA.total_monthly[apr])}`;
+document.getElementById('kpi1Target').textContent = hasPrev
+  ? `前月 ${fmtNum(totalMar)} ／ ${DATA.monthLabels[apr]}実績 ${fmtNum(DATA.total_monthly[apr])}`
+  : `${DATA.monthLabels[apr]}実績 ${fmtNum(DATA.total_monthly[apr])}`;
 const tr1 = document.getElementById('kpi1Trend');
-tr1.className = 'kpi-trend ' + (totalPct>1?'trend-up':totalPct<-1?'trend-down':'trend-flat');
-tr1.textContent = (totalPct>0?'▲ ':'▼ ') + Math.abs(totalPct) + '%';
+if (hasPrev) {
+  tr1.className = 'kpi-trend ' + (totalPct>1?'trend-up':totalPct<-1?'trend-down':'trend-flat');
+  tr1.textContent = (totalPct>0?'▲ ':'▼ ') + Math.abs(totalPct) + '%';
+} else {
+  tr1.className = 'kpi-trend trend-flat';
+  tr1.textContent = '—';
+}
 
 // 初診件数
 const shoApr = DATA.total_sho_apr;
-const shoMar = DATA.total_sho_monthly[mar];
-const shoPct = ((shoApr/shoMar - 1)*100).toFixed(1);
-const shoAch = (shoApr/DATA.global_sho_target*100).toFixed(0);
+const shoMar = hasPrev ? DATA.total_sho_monthly[mar] : shoApr;
+const shoPct = hasPrev ? ((shoApr/shoMar - 1)*100).toFixed(1) : '0.0';
+const shoAch = DATA.global_sho_target ? (shoApr/DATA.global_sho_target*100).toFixed(0) : '0';
 document.getElementById('kpi2Val').innerHTML = fmtNum(shoApr) + '<span class="kpi-unit">件</span>';
-document.getElementById('kpi2Target').textContent = `前月 ${fmtNum(shoMar)} ／ 目標 ${fmtNum(DATA.global_sho_target)} ／ 達成率 ${shoAch}%`;
+document.getElementById('kpi2Target').textContent = hasPrev
+  ? `前月 ${fmtNum(shoMar)} ／ 目標 ${fmtNum(DATA.global_sho_target)} ／ 達成率 ${shoAch}%`
+  : `目標 ${fmtNum(DATA.global_sho_target)} ／ 達成率 ${shoAch}%`;
 document.getElementById('kpi2Bar').style.width = Math.min(100, shoAch) + '%';
 const tr2 = document.getElementById('kpi2Trend');
-tr2.className = 'kpi-trend ' + (shoPct>1?'trend-up':shoPct<-1?'trend-down':'trend-flat');
-tr2.textContent = (shoPct>0?'▲ ':'▼ ') + Math.abs(shoPct) + '%';
+if (hasPrev) {
+  tr2.className = 'kpi-trend ' + (shoPct>1?'trend-up':shoPct<-1?'trend-down':'trend-flat');
+  tr2.textContent = (shoPct>0?'▲ ':'▼ ') + Math.abs(shoPct) + '%';
+} else {
+  tr2.className = 'kpi-trend trend-flat';
+  tr2.textContent = '—';
+}
 
 // 再診:初診 比率
 const spsApr = (DATA.total_sai_apr / shoApr).toFixed(1);
-const spsMar = (DATA.total_sai_monthly[mar] / shoMar).toFixed(1);
-const spsDelta = (spsApr - spsMar).toFixed(1);
+const spsMar = hasPrev ? (DATA.total_sai_monthly[mar] / shoMar).toFixed(1) : spsApr;
+const spsDelta = hasPrev ? (spsApr - spsMar).toFixed(1) : '0.0';
 document.getElementById('kpi3Val').innerHTML = spsApr + '<span class="kpi-unit">倍</span>';
-document.getElementById('kpi3Target').textContent = `前月 ${spsMar}倍 ／ 低下=改善方向`;
+document.getElementById('kpi3Target').textContent = hasPrev
+  ? `前月 ${spsMar}倍 ／ 低下=改善方向`
+  : `低下=改善方向`;
 const tr3 = document.getElementById('kpi3Trend');
-// 比率は低下が改善なので up/down を反転
-tr3.className = 'kpi-trend ' + (spsDelta<-0.1?'trend-up':spsDelta>0.1?'trend-down':'trend-flat');
-tr3.textContent = (spsDelta>0?'▲ ':'▼ ') + Math.abs(spsDelta);
+if (hasPrev) {
+  tr3.className = 'kpi-trend ' + (spsDelta<-0.1?'trend-up':spsDelta>0.1?'trend-down':'trend-flat');
+  tr3.textContent = (spsDelta>0?'▲ ':'▼ ') + Math.abs(spsDelta);
+} else {
+  tr3.className = 'kpi-trend trend-flat';
+  tr3.textContent = '—';
+}
 
 // 「薬のみ」再診件数
 const kusApr = DATA.total_kus_apr;
-const kusMar = DATA.total_kus_monthly[mar];
-const kusPct = ((kusApr/kusMar - 1)*100).toFixed(1);
-const kusAch = (DATA.global_kus_target / kusApr * 100).toFixed(0); // 目標に対する逆比
+const kusMar = hasPrev ? DATA.total_kus_monthly[mar] : kusApr;
+const kusPct = hasPrev ? ((kusApr/kusMar - 1)*100).toFixed(1) : '0.0';
 document.getElementById('kpi4Val').innerHTML = fmtNum(kusApr) + '<span class="kpi-unit">件</span>';
-document.getElementById('kpi4Target').textContent = `前月 ${fmtNum(kusMar)} ／ 目標 ${fmtNum(DATA.global_kus_target)}以下 ／ 削減率 ${(100-kusApr/kusMar*100).toFixed(0)}%`;
+document.getElementById('kpi4Target').textContent = hasPrev
+  ? `前月 ${fmtNum(kusMar)} ／ 目標 ${fmtNum(DATA.global_kus_target)}以下 ／ 削減率 ${(100-kusApr/kusMar*100).toFixed(0)}%`
+  : `目標 ${fmtNum(DATA.global_kus_target)}以下`;
 // 目標以下が良い。目標÷実績が100%以上なら良い
-const kusPctBar = Math.min(100, (DATA.global_kus_target/kusApr*100));
+const kusPctBar = kusApr > 0 ? Math.min(100, (DATA.global_kus_target/kusApr*100)) : 0;
 document.getElementById('kpi4Bar').style.width = kusPctBar + '%';
 const tr4 = document.getElementById('kpi4Trend');
-// 減少が改善
-tr4.className = 'kpi-trend ' + (kusPct<-1?'trend-up':kusPct>1?'trend-down':'trend-flat');
-tr4.textContent = (kusPct>0?'▲ ':'▼ ') + Math.abs(kusPct) + '%';
+if (hasPrev) {
+  // 減少が改善
+  tr4.className = 'kpi-trend ' + (kusPct<-1?'trend-up':kusPct>1?'trend-down':'trend-flat');
+  tr4.textContent = (kusPct>0?'▲ ':'▼ ') + Math.abs(kusPct) + '%';
+} else {
+  tr4.className = 'kpi-trend trend-flat';
+  tr4.textContent = '—';
+}
 
 // ============================================================
 // Sparklines
@@ -663,14 +691,14 @@ function makeSpark(id, data, color){
       scales:{x:{display:false},y:{display:false}}}
   });
 }
-const totalSpark = [...DATA.total_monthly.slice(0,5), totalApr];
-const shoSpark = [...DATA.total_sho_monthly.slice(0,5), shoApr];
+const totalSpark = [...DATA.total_monthly.slice(0,apr), totalApr];
+const shoSpark = [...DATA.total_sho_monthly.slice(0,apr), shoApr];
 const spsSpark = DATA.total_sai_monthly.map((s,i)=>{
-  const sho = i===5 ? shoApr : DATA.total_sho_monthly[i];
-  const sai = i===5 ? DATA.total_sai_apr : s;
+  const sho = i===apr ? shoApr : DATA.total_sho_monthly[i];
+  const sai = i===apr ? DATA.total_sai_apr : s;
   return sho>0 ? (sai/sho) : 0;
 });
-const kusSpark = [...DATA.total_kus_monthly.slice(0,5), kusApr];
+const kusSpark = [...DATA.total_kus_monthly.slice(0,apr), kusApr];
 makeSpark('sparkTotal', totalSpark, CC.blue);
 makeSpark('sparkSho', shoSpark, CC.blue);
 makeSpark('sparkSps', spsSpark, CC.other);
@@ -765,8 +793,8 @@ buildHeatmap('kus');
 // ============================================================
 // SCREEN 2: Trend charts
 // ============================================================
-const shoSeries = [...DATA.total_sho_monthly.slice(0,5), shoApr];
-const kusSeries = [...DATA.total_kus_monthly.slice(0,5), kusApr];
+const shoSeries = [...DATA.total_sho_monthly.slice(0,apr), shoApr];
+const kusSeries = [...DATA.total_kus_monthly.slice(0,apr), kusApr];
 const spsSeries = DATA.total_sai_monthly.map((s,i)=>{
   const sho = i===5 ? shoApr : DATA.total_sho_monthly[i];
   const sai = i===5 ? DATA.total_sai_apr : s;
@@ -810,7 +838,7 @@ charts.chartShoDept = new Chart(document.getElementById('chartShoDept'),{
   type:'line',
   data:{labels:DATA.monthLabels,
     datasets: top10Sho.map((d,i)=>{
-      const s = [...d.sho_m.slice(0,5), d.sho_apr];
+      const s = [...d.sho_m.slice(0,apr), d.sho_apr];
       return {label:d.name, data:s, borderColor:deptColors[i],
               backgroundColor:'transparent',borderWidth:1.5,
               pointRadius:3,pointBackgroundColor:deptColors[i],tension:.3};
@@ -964,8 +992,7 @@ function renderDeptDetail(deptName){
   document.getElementById('deptInfo').innerHTML = `
     <div class="dept-info-item"><span class="dept-info-label">タイプ</span><span class="dept-info-val"><span class="type-tag tag-${d.type}">${typeLabel}</span></span></div>
     <div class="dept-info-item"><span class="dept-info-label">月平均件数</span><span class="dept-info-val">${fmtNum(d.avg_monthly)}</span></div>
-    <div class="dept-info-item"><span class="dept-info-label">4月実績(22日)</span><span class="dept-info-val">${fmtNum(d.total_m[apr])}</span></div>
-    <div class="dept-info-item"><span class="dept-info-label">4月推計(30日)</span><span class="dept-info-val" style="color:var(--blue);">${fmtNum(d.total_apr)}</span></div>
+    <div class="dept-info-item"><span class="dept-info-label">${DATA.monthLabels[apr]}実績</span><span class="dept-info-val" style="color:var(--blue);">${fmtNum(d.total_apr)}</span></div>
   `;
 
   // Eval summary cards
@@ -1016,10 +1043,10 @@ function renderDeptDetail(deptName){
   });
 
   // Mini charts
-  const shoData = [...d.sho_m.slice(0,5), d.sho_apr];
-  const saiData = [...d.sai_m.slice(0,5), d.sai_apr];
-  const kusData = [...d.kus_m.slice(0,5), d.kus_apr];
-  const spsData = [...d.sps_m.slice(0,5), d.sps_apr].map(v => v===null?0:v);
+  const shoData = [...d.sho_m.slice(0,apr), d.sho_apr];
+  const saiData = [...d.sai_m.slice(0,apr), d.sai_apr];
+  const kusData = [...d.kus_m.slice(0,apr), d.kus_apr];
+  const spsData = [...d.sps_m.slice(0,apr), d.sps_apr].map(v => v===null?0:v);
 
   function miniChart(id, data, color, target, isLine=false){
     const ds = [{
