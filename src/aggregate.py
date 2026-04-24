@@ -270,22 +270,32 @@ def _agg_hourly_load(df: pd.DataFrame) -> pd.DataFrame:
     ]].sort_values(["診療科名", "曜日", "bin_idx"]).reset_index(drop=True)
 
 
-def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
-    """曜日×30分刻みの医師別出勤パターンを集計する。
+DOCTOR_HOURLY_CATEGORIES = ("全体", "初診", "再診", "薬再診")
 
-    - 出勤日数: 当該(医師, 曜日, bin)で1件以上診察した日数
-    - 該当日数: 当該曜日が月内に存在した日数（データ内の distinct 予約日）
-    - 出勤頻度率: 出勤日数 / 該当日数（0.0-1.0）。毎週同じ枠を開けていれば 1.0
-    - 件数合計: 当該ビンでの月内総診察件数（複数ビンにまたがる診察は各ビンに1カウント）
+
+def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
+    """曜日×30分刻みの医師別出勤パターンを区分別に集計する。
+
+    区分: 全体 / 初診 / 再診 / 薬再診（再診 ∧ 診察時間 ≤ DRUG_REVISIT_SHORT_EXAM_MIN 分）。
+    薬再診は再診の部分集合のため、同じ診察が再診と薬再診の双方に計上される。
+
+    - 出勤日数: 当該(医師, 区分, 曜日, bin)で1件以上診察した日数
+    - 該当日数: 当該曜日が月内に存在した日数（区分によらず全データで算出）
+    - 出勤頻度率: 出勤日数 / 該当日数（0.0-1.0）
+    - 件数合計: 当該区分の月内総診察件数（複数ビンにまたがる診察は各ビンに1カウント）
     - 実診察分数: 当該ビンと各診察の時間重なり分（分）の月内合計
+    - 件数_日平均: 件数合計 / 該当日数（1日あたり件数）
+    - 実診察分数_日平均: 実診察分数 / 該当日数（1日あたり分数）
     ビンは 08:00-20:00（12時間 / 30分 = 24ビン）。
     """
+    columns = [
+        "診療科名", DOCTOR_ID_COLUMN, "区分", "曜日", "bin_idx", "bin_label",
+        "出勤日数", "該当日数", "出勤頻度率",
+        "件数合計", "実診察分数", "件数_日平均", "実診察分数_日平均",
+    ]
     valid = df[_valid_time_mask(df)].copy()
     if valid.empty:
-        return pd.DataFrame(columns=[
-            "診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx", "bin_label",
-            "出勤日数", "該当日数", "出勤頻度率", "件数合計", "実診察分数",
-        ])
+        return pd.DataFrame(columns=columns)
 
     day_start = HEATMAP_DAY_START_H * 60
     valid["start_bin"] = np.clip(
@@ -308,25 +318,57 @@ def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
         - np.maximum(exploded["開始_分"], bin_start_min)
     ).clip(lower=0)
 
-    per_bin = (
-        exploded.groupby(["診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx"])
-        .agg(
-            出勤日数=("予約日", "nunique"),
-            件数合計=("予約日", "size"),
-            実診察分数=("overlap_min", "sum"),
-        )
-        .reset_index()
-    )
+    is_sho = exploded["初再診区分"] == "初診"
+    is_sai = exploded["初再診区分"] == "再診"
+    is_drug = is_sai & (exploded["診察時間"] <= DRUG_REVISIT_SHORT_EXAM_MIN)
+    category_masks: dict[str, pd.Series] = {
+        "全体": pd.Series(True, index=exploded.index),
+        "初診": is_sho,
+        "再診": is_sai,
+        "薬再診": is_drug,
+    }
 
     weekday_days = (
         valid.groupby("曜日")["予約日"].nunique().rename("該当日数").reset_index()
     )
 
-    merged = per_bin.merge(weekday_days, on="曜日", how="left")
+    frames: list[pd.DataFrame] = []
+    for cat, mask in category_masks.items():
+        sub = exploded[mask]
+        if sub.empty:
+            continue
+        per_bin = (
+            sub.groupby(["診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx"])
+            .agg(
+                出勤日数=("予約日", "nunique"),
+                件数合計=("予約日", "size"),
+                実診察分数=("overlap_min", "sum"),
+            )
+            .reset_index()
+        )
+        per_bin["区分"] = cat
+        frames.append(per_bin)
+
+    if not frames:
+        return pd.DataFrame(columns=columns)
+
+    merged = pd.concat(frames, ignore_index=True).merge(
+        weekday_days, on="曜日", how="left"
+    )
     merged["該当日数"] = merged["該当日数"].fillna(0).astype(int)
     merged["出勤頻度率"] = np.where(
         merged["該当日数"] > 0,
         (merged["出勤日数"] / merged["該当日数"]).round(3),
+        0.0,
+    )
+    merged["件数_日平均"] = np.where(
+        merged["該当日数"] > 0,
+        (merged["件数合計"] / merged["該当日数"]).round(2),
+        0.0,
+    )
+    merged["実診察分数_日平均"] = np.where(
+        merged["該当日数"] > 0,
+        (merged["実診察分数"] / merged["該当日数"]).round(1),
         0.0,
     )
     merged["実診察分数"] = merged["実診察分数"].round(1)
@@ -336,12 +378,13 @@ def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
         return f"{total // 60:02d}:{total % 60:02d}"
 
     merged["bin_label"] = merged["bin_idx"].apply(_label)
-    return merged[[
-        "診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx", "bin_label",
-        "出勤日数", "該当日数", "出勤頻度率", "件数合計", "実診察分数",
-    ]].sort_values(
-        ["診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx"]
-    ).reset_index(drop=True)
+    cat_order = pd.Categorical(
+        merged["区分"], categories=list(DOCTOR_HOURLY_CATEGORIES), ordered=True
+    )
+    merged = merged.assign(_cat_order=cat_order)
+    return merged[columns + ["_cat_order"]].sort_values(
+        ["診療科名", DOCTOR_ID_COLUMN, "_cat_order", "曜日", "bin_idx"]
+    ).drop(columns="_cat_order").reset_index(drop=True)
 
 
 def _agg_drug_revisit_score(df: pd.DataFrame) -> pd.DataFrame:

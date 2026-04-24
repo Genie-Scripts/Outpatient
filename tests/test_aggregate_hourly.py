@@ -134,10 +134,11 @@ def test_agg_doctor_hourly_frequency_and_count() -> None:
     proc = _preprocess(pd.DataFrame(rows))
     out = _agg_doctor_hourly(proc)
 
-    u001_0900 = out[
-        (out["予約担当者匿名ID"] == "DR_U001")
-        & (out["曜日"] == 0)
-        & (out["bin_idx"] == 2)
+    zentai = out[out["区分"] == "全体"]
+    u001_0900 = zentai[
+        (zentai["予約担当者匿名ID"] == "DR_U001")
+        & (zentai["曜日"] == 0)
+        & (zentai["bin_idx"] == 2)
     ]
     assert not u001_0900.empty
     r = u001_0900.iloc[0]
@@ -148,11 +149,14 @@ def test_agg_doctor_hourly_frequency_and_count() -> None:
     assert r["件数合計"] == 4
     # 09:00-09:15 は 09:00bin 内に完全に収まる → 4日 × 15分 = 60分
     assert r["実診察分数"] == 60.0
+    # 日平均: 4件/4日=1.0件, 60分/4日=15分
+    assert r["件数_日平均"] == 1.0
+    assert r["実診察分数_日平均"] == 15.0
 
-    u002_0930 = out[
-        (out["予約担当者匿名ID"] == "DR_U002")
-        & (out["曜日"] == 0)
-        & (out["bin_idx"] == 3)
+    u002_0930 = zentai[
+        (zentai["予約担当者匿名ID"] == "DR_U002")
+        & (zentai["曜日"] == 0)
+        & (zentai["bin_idx"] == 3)
     ]
     r = u002_0930.iloc[0]
     assert r["出勤日数"] == 2
@@ -161,6 +165,49 @@ def test_agg_doctor_hourly_frequency_and_count() -> None:
     assert r["件数合計"] == 2
     # 09:30-09:45 は 09:30bin 内に完全に収まる → 2日 × 15分 = 30分
     assert r["実診察分数"] == 30.0
+    assert r["件数_日平均"] == 0.5
+    assert r["実診察分数_日平均"] == 7.5
+
+
+def test_agg_doctor_hourly_category_split() -> None:
+    # 再診3件（うち1件は薬再診=3分）と初診2件を同ビンに投入
+    rows = [
+        _base_row(date="2026-03-02", kaishi="09:00:00", shuryo="09:10:00",
+                  shinsatsu_jikan=10.0, kubun="再診"),
+        _base_row(date="2026-03-09", kaishi="09:00:00", shuryo="09:10:00",
+                  shinsatsu_jikan=8.0, kubun="再診"),
+        _base_row(date="2026-03-16", kaishi="09:00:00", shuryo="09:05:00",
+                  shinsatsu_jikan=3.0, kubun="再診"),  # 薬再診
+        _base_row(date="2026-03-02", kaishi="09:00:00", shuryo="09:20:00",
+                  shinsatsu_jikan=20.0, kubun="初診"),
+        _base_row(date="2026-03-09", kaishi="09:00:00", shuryo="09:25:00",
+                  shinsatsu_jikan=25.0, kubun="初診"),
+    ]
+    proc = _preprocess(pd.DataFrame(rows))
+    out = _agg_doctor_hourly(proc)
+
+    def pick(cat: str) -> pd.Series:
+        sub = out[(out["区分"] == cat) & (out["曜日"] == 0) & (out["bin_idx"] == 2)]
+        return sub.iloc[0] if not sub.empty else None
+
+    zentai = pick("全体")
+    assert zentai["件数合計"] == 5
+    assert zentai["出勤日数"] == 3
+
+    sho = pick("初診")
+    assert sho["件数合計"] == 2
+    assert sho["出勤日数"] == 2
+
+    sai = pick("再診")
+    assert sai["件数合計"] == 3
+    assert sai["出勤日数"] == 3
+
+    drug = pick("薬再診")
+    assert drug["件数合計"] == 1
+    assert drug["出勤日数"] == 1
+
+    # 薬再診は再診の部分集合
+    assert drug["件数合計"] <= sai["件数合計"]
 
 
 def test_agg_doctor_hourly_duration_across_bins() -> None:
@@ -168,8 +215,9 @@ def test_agg_doctor_hourly_duration_across_bins() -> None:
     rows = [_base_row(date="2026-03-02", kaishi="09:20:00", shuryo="09:50:00", doctor="DR_U001")]
     proc = _preprocess(pd.DataFrame(rows))
     out = _agg_doctor_hourly(proc)
-    b0900 = out[(out["bin_idx"] == 2)].iloc[0]
-    b0930 = out[(out["bin_idx"] == 3)].iloc[0]
+    zentai = out[out["区分"] == "全体"]
+    b0900 = zentai[(zentai["bin_idx"] == 2)].iloc[0]
+    b0930 = zentai[(zentai["bin_idx"] == 3)].iloc[0]
     assert b0900["実診察分数"] == 10.0
     assert b0930["実診察分数"] == 20.0
     assert b0900["件数合計"] == 1
@@ -182,8 +230,9 @@ def test_agg_doctor_hourly_empty_when_no_valid() -> None:
     out = _agg_doctor_hourly(proc)
     assert out.empty
     assert list(out.columns) == [
-        "診療科名", "予約担当者匿名ID", "曜日", "bin_idx", "bin_label",
-        "出勤日数", "該当日数", "出勤頻度率", "件数合計", "実診察分数",
+        "診療科名", "予約担当者匿名ID", "区分", "曜日", "bin_idx", "bin_label",
+        "出勤日数", "該当日数", "出勤頻度率",
+        "件数合計", "実診察分数", "件数_日平均", "実診察分数_日平均",
     ]
 
 

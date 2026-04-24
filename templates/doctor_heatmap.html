@@ -3,6 +3,8 @@
   <p class="site-meta">
     診療科を選ぶと、所属医師ごとの曜日×30分ビン出勤パターンを表示します。
     セルの濃淡は選択中の指標の大きさ。<strong>出勤頻度率</strong>=そのビンで診察した日数 ÷ その曜日が月内に存在した日数。
+    区分（初診/再診/薬再診）で絞り込むと、その区分だけの件数・分数を表示できます。
+    <strong>1日平均</strong>は月合計を該当曜日の日数で割った値で、月をまたいだ比較に適しています。
     匿名IDはマスター追跡用にそのまま表示しています。
   </p>
 
@@ -24,11 +26,21 @@
     <label>指標：
       <select id="dh-metric">
         <option value="frequency" selected>出勤頻度率</option>
+        <option value="count_per_day">診察件数（1日平均）</option>
+        <option value="duration_per_day">実診察分数（1日平均）</option>
         <option value="count">診察件数（月合計）</option>
         <option value="duration">実診察分数（月合計）</option>
       </select>
     </label>
     <span class="site-meta" id="dh-caption"></span>
+  </div>
+
+  <div class="heatmap-controls dh-cat-group" id="dh-cat-group">
+    <span class="site-meta">区分：</span>
+    <label><input type="radio" name="dh-cat" value="全体" checked> 全体</label>
+    <label><input type="radio" name="dh-cat" value="初診"> 初診</label>
+    <label><input type="radio" name="dh-cat" value="再診"> 再診</label>
+    <label><input type="radio" name="dh-cat" value="薬再診"> 薬再診（再診∧診察≤4分）</label>
   </div>
 
   <div class="heatmap-controls dh-wd-tabs" id="dh-wd-tabs">
@@ -84,6 +96,8 @@
   border: 1px solid #d4d4d8; border-radius: 4px; cursor: pointer;
 }
 .dh-wd-tab.is-active { background: #0284c7; color: #fff; border-color: #0284c7; }
+.dh-cat-group { gap: 14px; margin-top: -4px; font-size: 13px; }
+.dh-cat-group label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
 .dh-table { table-layout: fixed; }
 .dh-table th.dh-doctor-col { min-width: 92px; padding: 4px 8px; background: #fafafa; }
 .dh-table th.dh-total-col { min-width: 56px; padding: 4px 4px; background: #fafafa; font-size: 11px; }
@@ -103,8 +117,10 @@
   const caption = document.getElementById("dh-caption");
   const tbody = document.getElementById("dh-tbody");
   const tabs = document.querySelectorAll(".dh-wd-tab");
+  const catRadios = document.querySelectorAll('input[name="dh-cat"]');
 
   let activeWd = 0;
+  let activeCat = "全体";
 
   const palette = ["#f4f4f5", "#bae6fd", "#38bdf8", "#0284c7", "#0c4a6e"];
 
@@ -122,10 +138,23 @@
       return val > 0 ? Math.round(val * 100) + "%" : "";
     }
     if (val <= 0) return "";
-    if (metric === "duration") {
+    if (metric === "duration" || metric === "duration_per_day") {
       return val >= 100 ? Math.round(val) + "m" : val.toFixed(0) + "m";
     }
+    if (metric === "count_per_day") {
+      return val >= 10 ? val.toFixed(1) : val.toFixed(1);
+    }
     return val.toFixed(0);
+  }
+
+  function emptyRow() {
+    return new Array(BIN_COUNT).fill(0);
+  }
+
+  function matrixRow(doctor, cat, metric) {
+    const byCat = doctor.categories && doctor.categories[cat];
+    if (!byCat || !byCat[metric]) return emptyRow();
+    return byCat[metric][activeWd] || emptyRow();
   }
 
   function render() {
@@ -144,12 +173,12 @@
     const weekdayDays = dept.weekday_day_count || [];
     const days = weekdayDays[activeWd] || 0;
     caption.textContent =
-      `${month} / ${dept.label} / ${WEEKDAYS[activeWd]}曜（月内${days}日）/ 医師 ${dept.doctors.length} 名`;
+      `${month} / ${dept.label} / ${WEEKDAYS[activeWd]}曜（月内${days}日）/ 区分 ${activeCat} / 医師 ${dept.doctors.length} 名`;
 
     let maxForMetric = metric === "frequency" ? 1.0 : 0;
     if (metric !== "frequency") {
       for (const d of dept.doctors) {
-        const row = d[metric][activeWd] || [];
+        const row = matrixRow(d, activeCat, metric);
         for (const v of row) if (v > maxForMetric) maxForMetric = v;
       }
       if (maxForMetric <= 0) maxForMetric = 1;
@@ -167,7 +196,12 @@
       total.textContent = d.total;
       tr.appendChild(total);
 
-      const row = d[metric][activeWd] || [];
+      const row = matrixRow(d, activeCat, metric);
+      const freqRow = matrixRow(d, activeCat, "frequency");
+      const cntRow = matrixRow(d, activeCat, "count");
+      const durRow = matrixRow(d, activeCat, "duration");
+      const cntPdRow = matrixRow(d, activeCat, "count_per_day");
+      const durPdRow = matrixRow(d, activeCat, "duration_per_day");
       for (let i = 0; i < BIN_COUNT; i++) {
         const td = document.createElement("td");
         td.className = "hm-cell";
@@ -176,10 +210,11 @@
         td.style.background = pickColor(ratio);
         td.textContent = fmt(v, metric);
         td.style.color = ratio > 0.6 ? "#fff" : "#27272a";
-        const freq = d.frequency[activeWd][i] || 0;
-        const cnt = d.count[activeWd][i] || 0;
-        const dur = d.duration[activeWd][i] || 0;
-        td.title = `${d.id} / ${WEEKDAYS[activeWd]} ${i}bin: 出勤頻度率 ${Math.round(freq * 100)}% / 件数 ${cnt} / 実診察 ${dur.toFixed(0)}分`;
+        td.title =
+          `${d.id} / ${WEEKDAYS[activeWd]} ${i}bin / ${activeCat}\n` +
+          `出勤頻度率 ${Math.round((freqRow[i] || 0) * 100)}%\n` +
+          `件数 月合計 ${cntRow[i] || 0} / 1日平均 ${(cntPdRow[i] || 0).toFixed(1)}\n` +
+          `実診察 月合計 ${(durRow[i] || 0).toFixed(0)}分 / 1日平均 ${(durPdRow[i] || 0).toFixed(1)}分`;
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
@@ -195,6 +230,14 @@
       btn.classList.add("is-active");
       activeWd = parseInt(btn.dataset.wd, 10);
       render();
+    });
+  });
+  catRadios.forEach(r => {
+    r.addEventListener("change", () => {
+      if (r.checked) {
+        activeCat = r.value;
+        render();
+      }
     });
   });
 
