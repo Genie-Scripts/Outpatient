@@ -206,6 +206,8 @@ def _cmd_build_hub() -> None:
     output = build_hub_page(
         docs_dir=DEFAULT_PATHS["docs_dir"],
         templates_dir=DEFAULT_PATHS["templates_dir"],
+        aggregated_root=DEFAULT_PATHS["agg_root"],
+        classification_path=DEFAULT_PATHS["dept_classification"],
         theme_css=_read_static(DEFAULT_PATHS["theme_css"]),
     )
     print(f"✓ ハブページ生成: {output}")
