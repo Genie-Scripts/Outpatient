@@ -1,0 +1,6251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>薬再診候補スコア 2026-04</title>
+<style>/* 外来効率化ダッシュボード 共通テーマ（ウォームライト） */
+:root {
+  --color-bg: #fdfaf4;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f5f0e6;
+  --color-text: #2d2a26;
+  --color-text-muted: #6b6660;
+  --color-border: #e5dfd2;
+  --color-primary: #b25c2e;
+  --color-primary-weak: #f0d8c5;
+  --color-accent: #3d6b7d;
+  --color-naika: #5b8a72;
+  --color-geka: #b25c2e;
+  --color-other: #9a7c4e;
+  --color-good: #3d7a4d;
+  --color-warn: #c98a2a;
+  --color-bad: #b8413c;
+  --radius: 6px;
+  --shadow-card: 0 1px 3px rgba(45, 42, 38, 0.08);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN",
+               "Yu Gothic", Meiryo, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+/* Header */
+.site-header {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.site-title { font-size: 18px; font-weight: 600; margin: 0; }
+.site-meta { color: var(--color-text-muted); font-size: 12px; }
+
+/* Cards */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 16px;
+}
+.card h2 { margin-top: 0; font-size: 16px; }
+.card h3 { font-size: 14px; margin-top: 16px; margin-bottom: 8px; }
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--color-border); }
+th { background: var(--color-surface-alt); font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Grades */
+.grade {
+  display: inline-block;
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-align: center;
+  color: #fff;
+  font-size: 12px;
+}
+.grade-S { background: var(--color-good); }
+.grade-A { background: #6ba074; }
+.grade-B { background: var(--color-warn); }
+.grade-C { background: #d87f3e; }
+.grade-D { background: var(--color-bad); }
+
+/* Type badges */
+.type-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #fff;
+}
+.type-naika { background: var(--color-naika); }
+.type-geka { background: var(--color-geka); }
+.type-other { background: var(--color-other); }
+
+/* Nav links */
+.nav-list { list-style: none; padding: 0; margin: 0; }
+.nav-list li { margin-bottom: 6px; }
+.nav-list a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.nav-list a:hover { text-decoration: underline; }
+
+/* Chart wrappers */
+.chart-wrap { position: relative; height: 280px; }
+.chart-wrap-sm { position: relative; height: 180px; }
+
+footer.site-footer {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  padding: 16px 24px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <h1 class="site-title">薬再診候補スコア (2026-04)</h1>
+  <div class="site-meta">生成: 2026-04-24 16:05</div>
+</header>
+
+<main class="container">
+<div class="card">
+  <h2>薬再診候補スコア — 2026-04</h2>
+  <p class="site-meta">
+    スコアは「短時間再診比率（診察時間≤4分）」「紹介状なし再診比率」「診察時間中央値（短いほど加点）」
+    の3指標を全データでMin-Max正規化した等配分平均（0-100）。
+    ノイズ抑制のため再診件数 ≥ 10 の医師×枠のみ採点。
+    各科 上位15件を表示。
+  </p>
+  <p>
+    <button id="export-csv-btn" class="btn-export">逆紹介候補CSVをダウンロード</button>
+    <span class="site-meta"> ※ 地域連携室への提出用一次リスト。医師匿名ID→実名は master_key.csv を参照。</span>
+  </p>
+</div>
+
+<div class="card">
+  <h2>診療科別 サマリ（高スコア件数の多い順）</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>診療科</th>
+        <th>タイプ</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">スコア≥60</th>
+        <th>詳細</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>眼科</td>
+        <td>外科</td>
+        <td class="num">2,344</td>
+        <td class="num">50.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">36</td>
+        <td><a href="#drev-E">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>産婦人科</td>
+        <td>外科</td>
+        <td class="num">1,445</td>
+        <td class="num">38.5%</td>
+        <td class="num">99.9%</td>
+        <td class="num">22</td>
+        <td><a href="#drev-G">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>泌尿器科</td>
+        <td>外科</td>
+        <td class="num">2,887</td>
+        <td class="num">65.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">19</td>
+        <td><a href="#drev-U">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>耳鼻咽喉科</td>
+        <td>外科</td>
+        <td class="num">1,146</td>
+        <td class="num">52.0%</td>
+        <td class="num">99.8%</td>
+        <td class="num">19</td>
+        <td><a href="#drev-ENT">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>整形外科</td>
+        <td>外科</td>
+        <td class="num">1,234</td>
+        <td class="num">34.8%</td>
+        <td class="num">99.4%</td>
+        <td class="num">19</td>
+        <td><a href="#drev-OR">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>総合内科</td>
+        <td>内科</td>
+        <td class="num">726</td>
+        <td class="num">29.1%</td>
+        <td class="num">99.9%</td>
+        <td class="num">14</td>
+        <td><a href="#drev-GM">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>皮膚科</td>
+        <td>外科</td>
+        <td class="num">852</td>
+        <td class="num">25.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">14</td>
+        <td><a href="#drev-DM">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>消化器内科</td>
+        <td>内科</td>
+        <td class="num">1,069</td>
+        <td class="num">44.0%</td>
+        <td class="num">99.9%</td>
+        <td class="num">13</td>
+        <td><a href="#drev-GI">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>血液内科</td>
+        <td>内科</td>
+        <td class="num">689</td>
+        <td class="num">49.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12</td>
+        <td><a href="#drev-HE">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>乳腺外科</td>
+        <td>外科</td>
+        <td class="num">1,015</td>
+        <td class="num">44.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12</td>
+        <td><a href="#drev-BR">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>リウマチ膠原病内科</td>
+        <td>内科</td>
+        <td class="num">819</td>
+        <td class="num">29.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10</td>
+        <td><a href="#drev-RH">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>呼吸器内科</td>
+        <td>内科</td>
+        <td class="num">938</td>
+        <td class="num">29.6%</td>
+        <td class="num">99.8%</td>
+        <td class="num">10</td>
+        <td><a href="#drev-RS">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>循環器内科</td>
+        <td>内科</td>
+        <td class="num">1,136</td>
+        <td class="num">26.0%</td>
+        <td class="num">99.5%</td>
+        <td class="num">10</td>
+        <td><a href="#drev-CV">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>一般消化器外科</td>
+        <td>外科</td>
+        <td class="num">774</td>
+        <td class="num">35.9%</td>
+        <td class="num">99.9%</td>
+        <td class="num">9</td>
+        <td><a href="#drev-GS">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>放射線治療科</td>
+        <td>その他</td>
+        <td class="num">741</td>
+        <td class="num">59.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8</td>
+        <td><a href="#drev-RT">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>歯科口腔外科</td>
+        <td>外科</td>
+        <td class="num">576</td>
+        <td class="num">17.2%</td>
+        <td class="num">99.8%</td>
+        <td class="num">8</td>
+        <td><a href="#drev-OS">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>形成外科</td>
+        <td>外科</td>
+        <td class="num">357</td>
+        <td class="num">21.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7</td>
+        <td><a href="#drev-PS">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>腎内科</td>
+        <td>内科</td>
+        <td class="num">567</td>
+        <td class="num">27.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6</td>
+        <td><a href="#drev-NE">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>脳神経内科</td>
+        <td>内科</td>
+        <td class="num">341</td>
+        <td class="num">38.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4</td>
+        <td><a href="#drev-NR">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>脳神経外科</td>
+        <td>外科</td>
+        <td class="num">163</td>
+        <td class="num">25.2%</td>
+        <td class="num">99.4%</td>
+        <td class="num">4</td>
+        <td><a href="#drev-NS">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>アレルギー科</td>
+        <td>内科</td>
+        <td class="num">153</td>
+        <td class="num">21.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4</td>
+        <td><a href="#drev-AL">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>メンタルケア科</td>
+        <td>内科</td>
+        <td class="num">302</td>
+        <td class="num">29.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3</td>
+        <td><a href="#drev-MN">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>心臓血管外科</td>
+        <td>外科</td>
+        <td class="num">86</td>
+        <td class="num">19.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3</td>
+        <td><a href="#drev-CS">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>小児科</td>
+        <td>内科</td>
+        <td class="num">366</td>
+        <td class="num">12.0%</td>
+        <td class="num">99.2%</td>
+        <td class="num">3</td>
+        <td><a href="#drev-PD">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>呼吸器外科</td>
+        <td>外科</td>
+        <td class="num">148</td>
+        <td class="num">16.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">2</td>
+        <td><a href="#drev-RS2">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>臨床腫瘍科</td>
+        <td>内科</td>
+        <td class="num">121</td>
+        <td class="num">14.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">2</td>
+        <td><a href="#drev-ON">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>救急科</td>
+        <td>その他</td>
+        <td class="num">86</td>
+        <td class="num">29.1%</td>
+        <td class="num">97.7%</td>
+        <td class="num">1</td>
+        <td><a href="#drev-ER">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>内科</td>
+        <td>内科</td>
+        <td class="num">112</td>
+        <td class="num">36.6%</td>
+        <td class="num">87.5%</td>
+        <td class="num">0</td>
+        <td><a href="#drev-IM">&darr;</a></td>
+      </tr>
+      
+      <tr>
+        <td>糖尿病内分泌内科</td>
+        <td>内科</td>
+        <td class="num">65</td>
+        <td class="num">7.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0</td>
+        <td><a href="#drev-DB">&darr;</a></td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+
+<div class="card" id="drev-E">
+  <h2>眼科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 2344 件 / 短時間再診 50.3% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 38（うちスコア≥60: 36）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_E020</td>
+        <td>SL_0400</td>
+        <td class="num">31</td>
+        <td class="num">100.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">100.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E021</td>
+        <td>SL_0200</td>
+        <td class="num">28</td>
+        <td class="num">100.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">100.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E021</td>
+        <td>SL_0218</td>
+        <td class="num">19</td>
+        <td class="num">100.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">100.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E032</td>
+        <td>SL_0447</td>
+        <td class="num">10</td>
+        <td class="num">100.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">100.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E020</td>
+        <td>SL_0009</td>
+        <td class="num">38</td>
+        <td class="num">97.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">99.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E003</td>
+        <td>SL_0035</td>
+        <td class="num">110</td>
+        <td class="num">95.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">98.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E005</td>
+        <td>SL_0054</td>
+        <td class="num">139</td>
+        <td class="num">95.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">98.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E018</td>
+        <td>SL_0170</td>
+        <td class="num">198</td>
+        <td class="num">94.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">98.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E016</td>
+        <td>SL_0151</td>
+        <td class="num">80</td>
+        <td class="num">81.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">92.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E002</td>
+        <td>SL_0136</td>
+        <td class="num">105</td>
+        <td class="num">81.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">2.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">92.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E030</td>
+        <td>SL_0442</td>
+        <td class="num">16</td>
+        <td class="num">75.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">91.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E006</td>
+        <td>SL_0404</td>
+        <td class="num">17</td>
+        <td class="num">82.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">90.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E017</td>
+        <td>SL_0009</td>
+        <td class="num">15</td>
+        <td class="num">60.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">85.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E014</td>
+        <td>SL_0138</td>
+        <td class="num">18</td>
+        <td class="num">55.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">85.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_E025</td>
+        <td>SL_0363</td>
+        <td class="num">23</td>
+        <td class="num">56.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">82.2</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-G">
+  <h2>産婦人科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 1445 件 / 短時間再診 38.5% / 紹介状なし再診 99.9%
+    / 採点済み医師×枠 24（うちスコア≥60: 22）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_G012</td>
+        <td>SL_0358</td>
+        <td class="num">31</td>
+        <td class="num">100.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">100.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G010</td>
+        <td>SL_0331</td>
+        <td class="num">18</td>
+        <td class="num">94.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">98.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G014</td>
+        <td>SL_0488</td>
+        <td class="num">11</td>
+        <td class="num">90.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">97.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G011</td>
+        <td>SL_0009</td>
+        <td class="num">52</td>
+        <td class="num">63.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">87.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G006</td>
+        <td>SL_0208</td>
+        <td class="num">71</td>
+        <td class="num">59.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">85.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G006</td>
+        <td>SL_0068</td>
+        <td class="num">36</td>
+        <td class="num">52.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G004</td>
+        <td>SL_0124</td>
+        <td class="num">205</td>
+        <td class="num">51.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G003</td>
+        <td>SL_0028</td>
+        <td class="num">204</td>
+        <td class="num">50.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G004</td>
+        <td>SL_0009</td>
+        <td class="num">11</td>
+        <td class="num">45.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">79.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G009</td>
+        <td>SL_0166</td>
+        <td class="num">24</td>
+        <td class="num">41.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">76.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G005</td>
+        <td>SL_0371</td>
+        <td class="num">44</td>
+        <td class="num">36.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">73.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G005</td>
+        <td>SL_0049</td>
+        <td class="num">141</td>
+        <td class="num">33.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G001</td>
+        <td>SL_0009</td>
+        <td class="num">14</td>
+        <td class="num">14.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G004</td>
+        <td>SL_0029</td>
+        <td class="num">36</td>
+        <td class="num">41.7%</td>
+        <td class="num">97.2%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">69.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_G008</td>
+        <td>SL_0009</td>
+        <td class="num">19</td>
+        <td class="num">5.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">68.4</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-U">
+  <h2>泌尿器科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 2887 件 / 短時間再診 65.5% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 20（うちスコア≥60: 19）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_U011</td>
+        <td>SL_0009</td>
+        <td class="num">46</td>
+        <td class="num">97.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">99.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U002</td>
+        <td>SL_0009</td>
+        <td class="num">232</td>
+        <td class="num">95.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">98.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U005</td>
+        <td>SL_0009</td>
+        <td class="num">243</td>
+        <td class="num">95.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">98.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U013</td>
+        <td>SL_0137</td>
+        <td class="num">65</td>
+        <td class="num">92.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">97.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U003</td>
+        <td>SL_0009</td>
+        <td class="num">23</td>
+        <td class="num">82.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">93.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U018</td>
+        <td>SL_0009</td>
+        <td class="num">79</td>
+        <td class="num">78.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">92.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U004</td>
+        <td>SL_0005</td>
+        <td class="num">57</td>
+        <td class="num">73.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">91.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U008</td>
+        <td>SL_0009</td>
+        <td class="num">55</td>
+        <td class="num">72.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">90.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U010</td>
+        <td>SL_0128</td>
+        <td class="num">290</td>
+        <td class="num">68.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">86.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U001</td>
+        <td>SL_0006</td>
+        <td class="num">429</td>
+        <td class="num">67.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">86.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U003</td>
+        <td>SL_0019</td>
+        <td class="num">376</td>
+        <td class="num">62.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">84.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U008</td>
+        <td>SL_0112</td>
+        <td class="num">278</td>
+        <td class="num">56.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">82.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U008</td>
+        <td>SL_0244</td>
+        <td class="num">22</td>
+        <td class="num">54.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">81.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U006</td>
+        <td>SL_0037</td>
+        <td class="num">199</td>
+        <td class="num">54.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">81.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_U012</td>
+        <td>SL_0132</td>
+        <td class="num">172</td>
+        <td class="num">51.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.4</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-ENT">
+  <h2>耳鼻咽喉科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 1146 件 / 短時間再診 52.0% / 紹介状なし再診 99.8%
+    / 採点済み医師×枠 19（うちスコア≥60: 19）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_ENT003</td>
+        <td>SL_0009</td>
+        <td class="num">11</td>
+        <td class="num">100.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">100.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT005</td>
+        <td>SL_0099</td>
+        <td class="num">58</td>
+        <td class="num">100.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">100.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT003</td>
+        <td>SL_0064</td>
+        <td class="num">182</td>
+        <td class="num">95.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">98.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT003</td>
+        <td>SL_0063</td>
+        <td class="num">24</td>
+        <td class="num">91.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">97.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT012</td>
+        <td>SL_0236</td>
+        <td class="num">36</td>
+        <td class="num">91.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">97.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT004</td>
+        <td>SL_0009</td>
+        <td class="num">61</td>
+        <td class="num">63.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">84.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT004</td>
+        <td>SL_0181</td>
+        <td class="num">115</td>
+        <td class="num">51.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT008</td>
+        <td>SL_0155</td>
+        <td class="num">118</td>
+        <td class="num">46.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">78.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT002</td>
+        <td>SL_0009</td>
+        <td class="num">22</td>
+        <td class="num">31.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT001</td>
+        <td>SL_0009</td>
+        <td class="num">58</td>
+        <td class="num">31.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT004</td>
+        <td>SL_0242</td>
+        <td class="num">12</td>
+        <td class="num">33.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT011</td>
+        <td>SL_0009</td>
+        <td class="num">13</td>
+        <td class="num">30.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT002</td>
+        <td>SL_0048</td>
+        <td class="num">43</td>
+        <td class="num">27.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT013</td>
+        <td>SL_0009</td>
+        <td class="num">37</td>
+        <td class="num">29.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">70.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ENT013</td>
+        <td>SL_0293</td>
+        <td class="num">40</td>
+        <td class="num">25.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">68.8</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-OR">
+  <h2>整形外科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 1234 件 / 短時間再診 34.8% / 紹介状なし再診 99.4%
+    / 採点済み医師×枠 24（うちスコア≥60: 19）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_OR009</td>
+        <td>SL_0165</td>
+        <td class="num">40</td>
+        <td class="num">97.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">99.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR009</td>
+        <td>SL_0009</td>
+        <td class="num">38</td>
+        <td class="num">94.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">98.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR005</td>
+        <td>SL_0009</td>
+        <td class="num">62</td>
+        <td class="num">59.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">86.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR011</td>
+        <td>SL_0206</td>
+        <td class="num">22</td>
+        <td class="num">59.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">83.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR004</td>
+        <td>SL_0069</td>
+        <td class="num">85</td>
+        <td class="num">57.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">82.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR003</td>
+        <td>SL_0038</td>
+        <td class="num">180</td>
+        <td class="num">55.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">81.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR022</td>
+        <td>SL_0421</td>
+        <td class="num">54</td>
+        <td class="num">40.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">76.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR022</td>
+        <td>SL_0286</td>
+        <td class="num">12</td>
+        <td class="num">33.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">73.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR006</td>
+        <td>SL_0081</td>
+        <td class="num">58</td>
+        <td class="num">32.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR020</td>
+        <td>SL_0279</td>
+        <td class="num">39</td>
+        <td class="num">20.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">67.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR008</td>
+        <td>SL_0147</td>
+        <td class="num">29</td>
+        <td class="num">17.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR007</td>
+        <td>SL_0261</td>
+        <td class="num">68</td>
+        <td class="num">23.5%</td>
+        <td class="num">98.5%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">65.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR019</td>
+        <td>SL_0275</td>
+        <td class="num">27</td>
+        <td class="num">18.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR010</td>
+        <td>SL_0198</td>
+        <td class="num">25</td>
+        <td class="num">16.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OR001</td>
+        <td>SL_0001</td>
+        <td class="num">47</td>
+        <td class="num">12.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.8</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-GM">
+  <h2>総合内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 726 件 / 短時間再診 29.1% / 紹介状なし再診 99.9%
+    / 採点済み医師×枠 17（うちスコア≥60: 14）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_GM004</td>
+        <td>SL_0009</td>
+        <td class="num">110</td>
+        <td class="num">80.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">93.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM001</td>
+        <td>SL_0009</td>
+        <td class="num">33</td>
+        <td class="num">72.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">90.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM001</td>
+        <td>SL_0016</td>
+        <td class="num">10</td>
+        <td class="num">70.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">87.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM012</td>
+        <td>SL_0009</td>
+        <td class="num">13</td>
+        <td class="num">38.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM016</td>
+        <td>SL_0289</td>
+        <td class="num">52</td>
+        <td class="num">21.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">67.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM013</td>
+        <td>SL_0247</td>
+        <td class="num">27</td>
+        <td class="num">25.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">67.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM003</td>
+        <td>SL_0071</td>
+        <td class="num">45</td>
+        <td class="num">20.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM008</td>
+        <td>SL_0149</td>
+        <td class="num">19</td>
+        <td class="num">21.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM004</td>
+        <td>SL_0157</td>
+        <td class="num">37</td>
+        <td class="num">24.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">13.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM017</td>
+        <td>SL_0330</td>
+        <td class="num">29</td>
+        <td class="num">10.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM018</td>
+        <td>SL_0337</td>
+        <td class="num">31</td>
+        <td class="num">12.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">62.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM007</td>
+        <td>SL_0148</td>
+        <td class="num">24</td>
+        <td class="num">16.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">61.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM012</td>
+        <td>SL_0238</td>
+        <td class="num">36</td>
+        <td class="num">11.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">60.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM009</td>
+        <td>SL_0172</td>
+        <td class="num">110</td>
+        <td class="num">8.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">60.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM011</td>
+        <td>SL_0231</td>
+        <td class="num">11</td>
+        <td class="num">18.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">15.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">59.8</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-DM">
+  <h2>皮膚科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 852 件 / 短時間再診 25.4% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 14（うちスコア≥60: 14）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_DM002</td>
+        <td>SL_0009</td>
+        <td class="num">26</td>
+        <td class="num">76.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">92.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM001</td>
+        <td>SL_0009</td>
+        <td class="num">13</td>
+        <td class="num">61.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">86.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM005</td>
+        <td>SL_0009</td>
+        <td class="num">14</td>
+        <td class="num">64.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">85.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM006</td>
+        <td>SL_0009</td>
+        <td class="num">19</td>
+        <td class="num">57.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">82.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM003</td>
+        <td>SL_0009</td>
+        <td class="num">26</td>
+        <td class="num">34.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">73.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM008</td>
+        <td>SL_0009</td>
+        <td class="num">53</td>
+        <td class="num">37.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM002</td>
+        <td>SL_0056</td>
+        <td class="num">120</td>
+        <td class="num">28.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">70.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM003</td>
+        <td>SL_0091</td>
+        <td class="num">107</td>
+        <td class="num">24.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">68.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM006</td>
+        <td>SL_0161</td>
+        <td class="num">137</td>
+        <td class="num">20.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM009</td>
+        <td>SL_0292</td>
+        <td class="num">34</td>
+        <td class="num">14.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM005</td>
+        <td>SL_0101</td>
+        <td class="num">71</td>
+        <td class="num">14.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM001</td>
+        <td>SL_0173</td>
+        <td class="num">138</td>
+        <td class="num">13.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM004</td>
+        <td>SL_0094</td>
+        <td class="num">18</td>
+        <td class="num">27.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">18.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">60.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DM007</td>
+        <td>SL_0197</td>
+        <td class="num">36</td>
+        <td class="num">8.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">60.3</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-GI">
+  <h2>消化器内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 1069 件 / 短時間再診 44.0% / 紹介状なし再診 99.9%
+    / 採点済み医師×枠 14（うちスコア≥60: 13）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_GI001</td>
+        <td>SL_0009</td>
+        <td class="num">104</td>
+        <td class="num">75.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">91.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI006</td>
+        <td>SL_0120</td>
+        <td class="num">187</td>
+        <td class="num">72.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">88.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD012</td>
+        <td>SL_0475</td>
+        <td class="num">22</td>
+        <td class="num">50.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">2.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">81.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI010</td>
+        <td>SL_0005</td>
+        <td class="num">11</td>
+        <td class="num">36.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">78.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI002</td>
+        <td>SL_0046</td>
+        <td class="num">194</td>
+        <td class="num">42.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">76.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI005</td>
+        <td>SL_0152</td>
+        <td class="num">157</td>
+        <td class="num">42.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">76.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI008</td>
+        <td>SL_0214</td>
+        <td class="num">128</td>
+        <td class="num">36.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">73.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI006</td>
+        <td>SL_0320</td>
+        <td class="num">12</td>
+        <td class="num">25.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">68.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI002</td>
+        <td>SL_0333</td>
+        <td class="num">10</td>
+        <td class="num">30.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI008</td>
+        <td>SL_0315</td>
+        <td class="num">11</td>
+        <td class="num">9.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI009</td>
+        <td>SL_0370</td>
+        <td class="num">14</td>
+        <td class="num">21.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI004</td>
+        <td>SL_0086</td>
+        <td class="num">19</td>
+        <td class="num">21.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI003</td>
+        <td>SL_0083</td>
+        <td class="num">108</td>
+        <td class="num">10.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GI003</td>
+        <td>SL_0502</td>
+        <td class="num">12</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">14.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">55.0</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-HE">
+  <h2>血液内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 689 件 / 短時間再診 49.3% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 14（うちスコア≥60: 12）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_HE005</td>
+        <td>SL_0216</td>
+        <td class="num">65</td>
+        <td class="num">86.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">2.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">93.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE006</td>
+        <td>SL_0009</td>
+        <td class="num">27</td>
+        <td class="num">74.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">90.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE004</td>
+        <td>SL_0169</td>
+        <td class="num">95</td>
+        <td class="num">72.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">88.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE007</td>
+        <td>SL_0005</td>
+        <td class="num">18</td>
+        <td class="num">61.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">87.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE004</td>
+        <td>SL_0009</td>
+        <td class="num">13</td>
+        <td class="num">61.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">86.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE009</td>
+        <td>SL_0383</td>
+        <td class="num">20</td>
+        <td class="num">55.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">85.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH005</td>
+        <td>SL_0009</td>
+        <td class="num">11</td>
+        <td class="num">54.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">84.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH005</td>
+        <td>SL_0156</td>
+        <td class="num">16</td>
+        <td class="num">56.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">82.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE001</td>
+        <td>SL_0012</td>
+        <td class="num">135</td>
+        <td class="num">51.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE003</td>
+        <td>SL_0096</td>
+        <td class="num">116</td>
+        <td class="num">36.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">73.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE002</td>
+        <td>SL_0089</td>
+        <td class="num">56</td>
+        <td class="num">32.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE010</td>
+        <td>SL_0439</td>
+        <td class="num">46</td>
+        <td class="num">19.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">65.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GM018</td>
+        <td>SL_0389</td>
+        <td class="num">19</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">58.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_HE008</td>
+        <td>SL_0339</td>
+        <td class="num">28</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">14.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">55.0</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-BR">
+  <h2>乳腺外科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 1015 件 / 短時間再診 44.8% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 12（うちスコア≥60: 12）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_BR004</td>
+        <td>SL_0135</td>
+        <td class="num">17</td>
+        <td class="num">58.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">85.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR002</td>
+        <td>SL_0009</td>
+        <td class="num">29</td>
+        <td class="num">62.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">84.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR006</td>
+        <td>SL_0175</td>
+        <td class="num">176</td>
+        <td class="num">59.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">83.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR002</td>
+        <td>SL_0032</td>
+        <td class="num">253</td>
+        <td class="num">55.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">81.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR003</td>
+        <td>SL_0077</td>
+        <td class="num">218</td>
+        <td class="num">49.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">79.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR003</td>
+        <td>SL_0009</td>
+        <td class="num">14</td>
+        <td class="num">35.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR007</td>
+        <td>SL_0009</td>
+        <td class="num">21</td>
+        <td class="num">38.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR006</td>
+        <td>SL_0009</td>
+        <td class="num">32</td>
+        <td class="num">28.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR008</td>
+        <td>SL_0241</td>
+        <td class="num">74</td>
+        <td class="num">21.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">67.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR001</td>
+        <td>SL_0297</td>
+        <td class="num">52</td>
+        <td class="num">21.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR007</td>
+        <td>SL_0182</td>
+        <td class="num">55</td>
+        <td class="num">18.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_BR001</td>
+        <td>SL_0009</td>
+        <td class="num">22</td>
+        <td class="num">4.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">61.1</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-RH">
+  <h2>リウマチ膠原病内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 819 件 / 短時間再診 29.9% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 12（うちスコア≥60: 10）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_RH005</td>
+        <td>SL_0156</td>
+        <td class="num">35</td>
+        <td class="num">68.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">89.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH007</td>
+        <td>SL_0009</td>
+        <td class="num">29</td>
+        <td class="num">69.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">1.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">88.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH009</td>
+        <td>SL_0009</td>
+        <td class="num">11</td>
+        <td class="num">54.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">82.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH004</td>
+        <td>SL_0139</td>
+        <td class="num">75</td>
+        <td class="num">45.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">77.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH009</td>
+        <td>SL_0210</td>
+        <td class="num">201</td>
+        <td class="num">36.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">74.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH003</td>
+        <td>SL_0066</td>
+        <td class="num">102</td>
+        <td class="num">35.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">73.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH003</td>
+        <td>SL_0009</td>
+        <td class="num">15</td>
+        <td class="num">26.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">70.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH010</td>
+        <td>SL_0222</td>
+        <td class="num">66</td>
+        <td class="num">22.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">69.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH006</td>
+        <td>SL_0174</td>
+        <td class="num">117</td>
+        <td class="num">8.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">62.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH001</td>
+        <td>SL_0008</td>
+        <td class="num">37</td>
+        <td class="num">5.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">61.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH002</td>
+        <td>SL_0014</td>
+        <td class="num">53</td>
+        <td class="num">3.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">58.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RH008</td>
+        <td>SL_0201</td>
+        <td class="num">16</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">14.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">55.0</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-RS">
+  <h2>呼吸器内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 938 件 / 短時間再診 29.6% / 紹介状なし再診 99.8%
+    / 採点済み医師×枠 13（うちスコア≥60: 10）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_RS2009</td>
+        <td>SL_0009</td>
+        <td class="num">65</td>
+        <td class="num">58.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">86.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2003</td>
+        <td>SL_0061</td>
+        <td class="num">113</td>
+        <td class="num">43.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">77.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2004</td>
+        <td>SL_0009</td>
+        <td class="num">26</td>
+        <td class="num">38.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">74.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2005</td>
+        <td>SL_0100</td>
+        <td class="num">85</td>
+        <td class="num">34.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">73.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_AL002</td>
+        <td>SL_0189</td>
+        <td class="num">108</td>
+        <td class="num">33.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2010</td>
+        <td>SL_0167</td>
+        <td class="num">73</td>
+        <td class="num">32.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_AL001</td>
+        <td>SL_0033</td>
+        <td class="num">33</td>
+        <td class="num">18.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">67.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2006</td>
+        <td>SL_0106</td>
+        <td class="num">96</td>
+        <td class="num">20.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2004</td>
+        <td>SL_0082</td>
+        <td class="num">184</td>
+        <td class="num">20.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">65.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2007</td>
+        <td>SL_0126</td>
+        <td class="num">15</td>
+        <td class="num">20.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2008</td>
+        <td>SL_0127</td>
+        <td class="num">44</td>
+        <td class="num">6.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">13.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">58.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2002</td>
+        <td>SL_0030</td>
+        <td class="num">17</td>
+        <td class="num">11.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">16.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">57.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2009</td>
+        <td>SL_0366</td>
+        <td class="num">15</td>
+        <td class="num">26.7%</td>
+        <td class="num">93.3%</td>
+        <td class="num">12.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">49.9</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-CV">
+  <h2>循環器内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 1136 件 / 短時間再診 26.0% / 紹介状なし再診 99.5%
+    / 採点済み医師×枠 13（うちスコア≥60: 10）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_CV002</td>
+        <td>SL_0009</td>
+        <td class="num">119</td>
+        <td class="num">62.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">87.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV008</td>
+        <td>SL_0150</td>
+        <td class="num">182</td>
+        <td class="num">42.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">76.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV004</td>
+        <td>SL_0034</td>
+        <td class="num">93</td>
+        <td class="num">31.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV001</td>
+        <td>SL_0044</td>
+        <td class="num">143</td>
+        <td class="num">23.8%</td>
+        <td class="num">99.3%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">68.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV003</td>
+        <td>SL_0031</td>
+        <td class="num">89</td>
+        <td class="num">19.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV001</td>
+        <td>SL_0009</td>
+        <td class="num">25</td>
+        <td class="num">12.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV010</td>
+        <td>SL_0193</td>
+        <td class="num">108</td>
+        <td class="num">13.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">62.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV009</td>
+        <td>SL_0153</td>
+        <td class="num">70</td>
+        <td class="num">10.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">61.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV011</td>
+        <td>SL_0196</td>
+        <td class="num">58</td>
+        <td class="num">5.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">61.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV007</td>
+        <td>SL_0078</td>
+        <td class="num">41</td>
+        <td class="num">9.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">60.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV006</td>
+        <td>SL_0067</td>
+        <td class="num">89</td>
+        <td class="num">1.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">57.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV005</td>
+        <td>SL_0058</td>
+        <td class="num">14</td>
+        <td class="num">57.1%</td>
+        <td class="num">85.7%</td>
+        <td class="num">2.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">50.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CV002</td>
+        <td>SL_0118</td>
+        <td class="num">20</td>
+        <td class="num">30.0%</td>
+        <td class="num">90.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">44.2</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-GS">
+  <h2>一般消化器外科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 774 件 / 短時間再診 35.9% / 紹介状なし再診 99.9%
+    / 採点済み医師×枠 10（うちスコア≥60: 9）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_BR005</td>
+        <td>SL_0009</td>
+        <td class="num">22</td>
+        <td class="num">90.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">97.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS011</td>
+        <td>SL_0009</td>
+        <td class="num">26</td>
+        <td class="num">80.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">93.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS006</td>
+        <td>SL_0202</td>
+        <td class="num">73</td>
+        <td class="num">52.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS004</td>
+        <td>SL_0109</td>
+        <td class="num">58</td>
+        <td class="num">48.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">78.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS002</td>
+        <td>SL_0085</td>
+        <td class="num">66</td>
+        <td class="num">45.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">78.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS001</td>
+        <td>SL_0022</td>
+        <td class="num">160</td>
+        <td class="num">43.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">77.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS003</td>
+        <td>SL_0103</td>
+        <td class="num">134</td>
+        <td class="num">12.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS008</td>
+        <td>SL_0229</td>
+        <td class="num">35</td>
+        <td class="num">22.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">13.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS009</td>
+        <td>SL_0374</td>
+        <td class="num">48</td>
+        <td class="num">10.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">61.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_GS005</td>
+        <td>SL_0194</td>
+        <td class="num">20</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">13.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">55.8</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-RT">
+  <h2>放射線治療科 <span class="type-badge">その他</span></h2>
+  <p class="site-meta">
+    再診 741 件 / 短時間再診 59.2% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 9（うちスコア≥60: 8）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_RT004</td>
+        <td>SL_0009</td>
+        <td class="num">32</td>
+        <td class="num">71.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">2.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">89.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RT002</td>
+        <td>SL_0134</td>
+        <td class="num">375</td>
+        <td class="num">65.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">85.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RT002</td>
+        <td>SL_0009</td>
+        <td class="num">55</td>
+        <td class="num">61.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">2.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">85.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RT004</td>
+        <td>SL_0108</td>
+        <td class="num">124</td>
+        <td class="num">61.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">3.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">84.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RT005</td>
+        <td>SL_0209</td>
+        <td class="num">38</td>
+        <td class="num">55.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">81.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RT005</td>
+        <td>SL_0009</td>
+        <td class="num">10</td>
+        <td class="num">50.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RT001</td>
+        <td>SL_0023</td>
+        <td class="num">19</td>
+        <td class="num">26.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">69.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RT003</td>
+        <td>SL_0050</td>
+        <td class="num">22</td>
+        <td class="num">22.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">68.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RT006</td>
+        <td>SL_0251</td>
+        <td class="num">25</td>
+        <td class="num">28.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">29.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">51.8</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-OS">
+  <h2>歯科口腔外科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 576 件 / 短時間再診 17.2% / 紹介状なし再診 99.8%
+    / 採点済み医師×枠 17（うちスコア≥60: 8）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_OS015</td>
+        <td>SL_0009</td>
+        <td class="num">14</td>
+        <td class="num">92.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">97.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS005</td>
+        <td>SL_0133</td>
+        <td class="num">11</td>
+        <td class="num">63.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">87.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS014</td>
+        <td>SL_0372</td>
+        <td class="num">12</td>
+        <td class="num">33.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS003</td>
+        <td>SL_0009</td>
+        <td class="num">14</td>
+        <td class="num">35.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS002</td>
+        <td>SL_0009</td>
+        <td class="num">19</td>
+        <td class="num">36.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">69.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS007</td>
+        <td>SL_0141</td>
+        <td class="num">13</td>
+        <td class="num">30.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">14.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">65.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS004</td>
+        <td>SL_0009</td>
+        <td class="num">23</td>
+        <td class="num">21.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS010</td>
+        <td>SL_0009</td>
+        <td class="num">14</td>
+        <td class="num">21.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">16.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">60.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS002</td>
+        <td>SL_0060</td>
+        <td class="num">102</td>
+        <td class="num">6.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">59.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS004</td>
+        <td>SL_0123</td>
+        <td class="num">100</td>
+        <td class="num">9.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">14.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">58.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS003</td>
+        <td>SL_0080</td>
+        <td class="num">50</td>
+        <td class="num">8.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">14.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">57.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS006</td>
+        <td>SL_0285</td>
+        <td class="num">50</td>
+        <td class="num">12.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">17.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">56.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS001</td>
+        <td>SL_0009</td>
+        <td class="num">10</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">15.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">54.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS008</td>
+        <td>SL_0329</td>
+        <td class="num">11</td>
+        <td class="num">9.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">22.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">50.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_OS011</td>
+        <td>SL_0322</td>
+        <td class="num">22</td>
+        <td class="num">13.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">30.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">46.2</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-PS">
+  <h2>形成外科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 357 件 / 短時間再診 21.3% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 9（うちスコア≥60: 7）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_PS003</td>
+        <td>SL_0009</td>
+        <td class="num">36</td>
+        <td class="num">33.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PS005</td>
+        <td>SL_0009</td>
+        <td class="num">11</td>
+        <td class="num">27.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">69.1</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PS002</td>
+        <td>SL_0062</td>
+        <td class="num">14</td>
+        <td class="num">21.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PS005</td>
+        <td>SL_0265</td>
+        <td class="num">75</td>
+        <td class="num">20.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">65.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PS003</td>
+        <td>SL_0093</td>
+        <td class="num">68</td>
+        <td class="num">19.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">65.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PS008</td>
+        <td>SL_0336</td>
+        <td class="num">10</td>
+        <td class="num">10.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PS004</td>
+        <td>SL_0245</td>
+        <td class="num">52</td>
+        <td class="num">9.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">11.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">60.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PS006</td>
+        <td>SL_0288</td>
+        <td class="num">17</td>
+        <td class="num">11.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">13.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">59.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PS004</td>
+        <td>SL_0009</td>
+        <td class="num">14</td>
+        <td class="num">14.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">18.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">56.4</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-NE">
+  <h2>腎内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 567 件 / 短時間再診 27.5% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 8（うちスコア≥60: 6）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_NE004</td>
+        <td>SL_0348</td>
+        <td class="num">29</td>
+        <td class="num">89.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">96.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NE005</td>
+        <td>SL_0009</td>
+        <td class="num">31</td>
+        <td class="num">64.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">88.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NE002</td>
+        <td>SL_0041</td>
+        <td class="num">229</td>
+        <td class="num">31.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">72.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NE006</td>
+        <td>SL_0364</td>
+        <td class="num">15</td>
+        <td class="num">20.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">68.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NE003</td>
+        <td>SL_0203</td>
+        <td class="num">48</td>
+        <td class="num">16.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NE001</td>
+        <td>SL_0027</td>
+        <td class="num">150</td>
+        <td class="num">10.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NE001</td>
+        <td>SL_0009</td>
+        <td class="num">27</td>
+        <td class="num">18.5%</td>
+        <td class="num">100.0%</td>
+        <td class="num">29.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">48.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NE003</td>
+        <td>SL_0009</td>
+        <td class="num">10</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">24.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">46.7</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-NR">
+  <h2>脳神経内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 341 件 / 短時間再診 38.1% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 4（うちスコア≥60: 4）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_NR002</td>
+        <td>SL_0009</td>
+        <td class="num">50</td>
+        <td class="num">74.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">91.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NR003</td>
+        <td>SL_0160</td>
+        <td class="num">68</td>
+        <td class="num">47.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">78.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NR001</td>
+        <td>SL_0013</td>
+        <td class="num">159</td>
+        <td class="num">30.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NR005</td>
+        <td>SL_0291</td>
+        <td class="num">34</td>
+        <td class="num">11.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.4</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-NS">
+  <h2>脳神経外科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 163 件 / 短時間再診 25.2% / 紹介状なし再診 99.4%
+    / 採点済み医師×枠 4（うちスコア≥60: 4）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_NS001</td>
+        <td>SL_0009</td>
+        <td class="num">10</td>
+        <td class="num">70.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">90.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NS004</td>
+        <td>SL_0302</td>
+        <td class="num">37</td>
+        <td class="num">29.7%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">70.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NS003</td>
+        <td>SL_0184</td>
+        <td class="num">43</td>
+        <td class="num">23.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">67.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_NS005</td>
+        <td>SL_0343</td>
+        <td class="num">46</td>
+        <td class="num">15.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.2</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-AL">
+  <h2>アレルギー科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 153 件 / 短時間再診 21.6% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 4（うちスコア≥60: 4）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_RS2003</td>
+        <td>SL_0061</td>
+        <td class="num">42</td>
+        <td class="num">42.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">5.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">76.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2005</td>
+        <td>SL_0100</td>
+        <td class="num">24</td>
+        <td class="num">20.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">68.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_AL001</td>
+        <td>SL_0033</td>
+        <td class="num">29</td>
+        <td class="num">13.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">65.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_AL002</td>
+        <td>SL_0189</td>
+        <td class="num">44</td>
+        <td class="num">6.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.1</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-MN">
+  <h2>メンタルケア科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 302 件 / 短時間再診 29.5% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 4（うちスコア≥60: 3）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_MN002</td>
+        <td>SL_0009</td>
+        <td class="num">78</td>
+        <td class="num">50.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">4.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">80.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_MN004</td>
+        <td>SL_0255</td>
+        <td class="num">37</td>
+        <td class="num">32.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">7.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">71.6</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_MN001</td>
+        <td>SL_0043</td>
+        <td class="num">126</td>
+        <td class="num">21.4%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_MN003</td>
+        <td>SL_0084</td>
+        <td class="num">39</td>
+        <td class="num">2.6%</td>
+        <td class="num">100.0%</td>
+        <td class="num">17.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">53.4</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-CS">
+  <h2>心臓血管外科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 86 件 / 短時間再診 19.8% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 3（うちスコア≥60: 3）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_CS003</td>
+        <td>SL_0009</td>
+        <td class="num">10</td>
+        <td class="num">60.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">0.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-high
+              
+            ">86.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CS002</td>
+        <td>SL_0168</td>
+        <td class="num">27</td>
+        <td class="num">11.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_CS001</td>
+        <td>SL_0163</td>
+        <td class="num">34</td>
+        <td class="num">11.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">62.3</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-PD">
+  <h2>小児科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 366 件 / 短時間再診 12.0% / 紹介状なし再診 99.2%
+    / 採点済み医師×枠 17（うちスコア≥60: 3）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_PD011</td>
+        <td>SL_0009</td>
+        <td class="num">10</td>
+        <td class="num">30.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">66.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD002</td>
+        <td>SL_0070</td>
+        <td class="num">30</td>
+        <td class="num">10.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">6.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">65.0</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD001</td>
+        <td>SL_0020</td>
+        <td class="num">27</td>
+        <td class="num">22.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">13.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD004</td>
+        <td>SL_0177</td>
+        <td class="num">31</td>
+        <td class="num">16.1%</td>
+        <td class="num">100.0%</td>
+        <td class="num">15.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">59.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD009</td>
+        <td>SL_0257</td>
+        <td class="num">13</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">10.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">58.3</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD008</td>
+        <td>SL_0250</td>
+        <td class="num">21</td>
+        <td class="num">14.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">18.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">56.4</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD004</td>
+        <td>SL_0270</td>
+        <td class="num">10</td>
+        <td class="num">10.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">16.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">56.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD007</td>
+        <td>SL_0351</td>
+        <td class="num">24</td>
+        <td class="num">4.2%</td>
+        <td class="num">100.0%</td>
+        <td class="num">16.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">54.7</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD005</td>
+        <td>SL_0328</td>
+        <td class="num">15</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">15.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">54.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD003</td>
+        <td>SL_0098</td>
+        <td class="num">18</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">15.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">54.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD006</td>
+        <td>SL_0503</td>
+        <td class="num">14</td>
+        <td class="num">14.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">21.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">53.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD001</td>
+        <td>SL_0313</td>
+        <td class="num">15</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">15.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">53.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD007</td>
+        <td>SL_0239</td>
+        <td class="num">12</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">17.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">52.5</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD006</td>
+        <td>SL_0272</td>
+        <td class="num">25</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">22.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">47.9</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_PD003</td>
+        <td>SL_0399</td>
+        <td class="num">12</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">23.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">47.1</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-RS2">
+  <h2>呼吸器外科 <span class="type-badge">外科</span></h2>
+  <p class="site-meta">
+    再診 148 件 / 短時間再診 16.9% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 2（うちスコア≥60: 2）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_RS2012</td>
+        <td>SL_0188</td>
+        <td class="num">71</td>
+        <td class="num">16.9%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_RS2001</td>
+        <td>SL_0024</td>
+        <td class="num">60</td>
+        <td class="num">13.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">9.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">63.6</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-ON">
+  <h2>臨床腫瘍科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 121 件 / 短時間再診 14.0% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 2（うちスコア≥60: 2）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_ON001</td>
+        <td>SL_0088</td>
+        <td class="num">80</td>
+        <td class="num">13.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">8.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.2</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ON001</td>
+        <td>SL_0009</td>
+        <td class="num">28</td>
+        <td class="num">14.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">12.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">61.0</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-ER">
+  <h2>救急科 <span class="type-badge">その他</span></h2>
+  <p class="site-meta">
+    再診 86 件 / 短時間再診 29.1% / 紹介状なし再診 97.7%
+    / 採点済み医師×枠 2（うちスコア≥60: 1）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_ER001</td>
+        <td>SL_0072</td>
+        <td class="num">69</td>
+        <td class="num">34.8%</td>
+        <td class="num">97.1%</td>
+        <td class="num">8.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">64.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_ER002</td>
+        <td>SL_0395</td>
+        <td class="num">13</td>
+        <td class="num">0.0%</td>
+        <td class="num">100.0%</td>
+        <td class="num">22.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">48.3</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-IM">
+  <h2>内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 112 件 / 短時間再診 36.6% / 紹介状なし再診 87.5%
+    / 採点済み医師×枠 1（うちスコア≥60: 0）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_IM001</td>
+        <td>SL_0015</td>
+        <td class="num">108</td>
+        <td class="num">38.0%</td>
+        <td class="num">87.0%</td>
+        <td class="num">9.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-low
+            ">41.1</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+<div class="card" id="drev-DB">
+  <h2>糖尿病内分泌内科 <span class="type-badge">内科</span></h2>
+  <p class="site-meta">
+    再診 65 件 / 短時間再診 7.7% / 紹介状なし再診 100.0%
+    / 採点済み医師×枠 2（うちスコア≥60: 0）
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>医師匿名ID</th>
+        <th>予約名称</th>
+        <th class="num">再診件数</th>
+        <th class="num">短時間再診比率</th>
+        <th class="num">紹介状なし再診比率</th>
+        <th class="num">診察時間中央値(分)</th>
+        <th class="num">スコア</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      <tr>
+        <td>DR_DB001</td>
+        <td>SL_0264</td>
+        <td class="num">12</td>
+        <td class="num">8.3%</td>
+        <td class="num">100.0%</td>
+        <td class="num">17.5</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">54.8</span>
+          
+        </td>
+      </tr>
+      
+      <tr>
+        <td>DR_DB002</td>
+        <td>SL_0282</td>
+        <td class="num">36</td>
+        <td class="num">2.8%</td>
+        <td class="num">100.0%</td>
+        <td class="num">17.0</td>
+        <td class="num">
+          
+            <span class="score-badge
+              score-mid
+              
+            ">53.4</span>
+          
+        </td>
+      </tr>
+      
+      
+    </tbody>
+  </table>
+</div>
+
+
+<p><a href="index.html">← ハブへ戻る</a></p>
+
+<style>
+.btn-export {
+  background: #0284c7; color: #fff; border: none; padding: 8px 16px;
+  border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+.btn-export:hover { background: #0369a1; }
+.score-badge {
+  display: inline-block; min-width: 40px; padding: 2px 6px;
+  border-radius: 4px; font-weight: 600; text-align: center;
+}
+.score-high { background: #dc2626; color: #fff; }
+.score-mid { background: #f59e0b; color: #fff; }
+.score-low { background: #e4e4e7; color: #3f3f46; }
+</style>
+
+<script id="export-csv-data" type="text/plain">診療科,医師匿名ID,予約名称,再診件数,短時間再診比率(%),紹介状なし再診比率(%),診察時間中央値(分),スコア
+眼科,DR_E020,SL_0400,31,100.0,100.0,0.0,100.0
+眼科,DR_E021,SL_0200,28,100.0,100.0,0.0,100.0
+眼科,DR_E021,SL_0218,19,100.0,100.0,0.0,100.0
+眼科,DR_E032,SL_0447,10,100.0,100.0,0.0,100.0
+眼科,DR_E020,SL_0009,38,97.4,100.0,0.0,99.1
+眼科,DR_E003,SL_0035,110,95.5,100.0,0.0,98.5
+眼科,DR_E005,SL_0054,139,95.0,100.0,0.0,98.3
+眼科,DR_E018,SL_0170,198,94.4,100.0,0.0,98.1
+眼科,DR_E016,SL_0151,80,81.2,100.0,1.0,92.9
+眼科,DR_E002,SL_0136,105,81.9,100.0,2.0,92.3
+眼科,DR_E030,SL_0442,16,75.0,100.0,0.0,91.7
+眼科,DR_E006,SL_0404,17,82.4,100.0,4.0,90.8
+眼科,DR_E017,SL_0009,15,60.0,100.0,1.0,85.8
+眼科,DR_E014,SL_0138,18,55.6,100.0,0.0,85.2
+眼科,DR_E025,SL_0363,23,56.5,100.0,4.0,82.2
+産婦人科,DR_G012,SL_0358,31,100.0,100.0,0.0,100.0
+産婦人科,DR_G010,SL_0331,18,94.4,100.0,0.0,98.1
+産婦人科,DR_G014,SL_0488,11,90.9,100.0,0.0,97.0
+産婦人科,DR_G011,SL_0009,52,63.5,100.0,0.0,87.8
+産婦人科,DR_G006,SL_0208,71,59.2,100.0,1.0,85.6
+産婦人科,DR_G006,SL_0068,36,52.8,100.0,4.0,80.9
+産婦人科,DR_G004,SL_0124,205,51.7,100.0,4.0,80.6
+産婦人科,DR_G003,SL_0028,204,50.0,100.0,4.0,80.0
+産婦人科,DR_G004,SL_0009,11,45.5,100.0,3.0,79.3
+産婦人科,DR_G009,SL_0166,24,41.7,100.0,5.0,76.4
+産婦人科,DR_G005,SL_0371,44,36.4,100.0,6.0,73.8
+産婦人科,DR_G005,SL_0049,141,33.3,100.0,7.0,71.9
+産婦人科,DR_G001,SL_0009,14,14.3,100.0,0.0,71.4
+産婦人科,DR_G004,SL_0029,36,41.7,97.2,5.0,69.9
+産婦人科,DR_G008,SL_0009,19,5.3,100.0,0.0,68.4
+泌尿器科,DR_U011,SL_0009,46,97.8,100.0,0.0,99.3
+泌尿器科,DR_U002,SL_0009,232,95.7,100.0,0.0,98.6
+泌尿器科,DR_U005,SL_0009,243,95.9,100.0,0.0,98.6
+泌尿器科,DR_U013,SL_0137,65,92.3,100.0,0.0,97.4
+泌尿器科,DR_U003,SL_0009,23,82.6,100.0,1.0,93.4
+泌尿器科,DR_U018,SL_0009,79,78.5,100.0,0.0,92.8
+泌尿器科,DR_U004,SL_0005,57,73.7,100.0,0.0,91.2
+泌尿器科,DR_U008,SL_0009,55,72.7,100.0,0.0,90.9
+泌尿器科,DR_U010,SL_0128,290,68.3,100.0,3.0,86.9
+泌尿器科,DR_U001,SL_0006,429,67.1,100.0,3.0,86.5
+泌尿器科,DR_U003,SL_0019,376,62.5,100.0,4.0,84.2
+泌尿器科,DR_U008,SL_0112,278,56.5,100.0,4.0,82.2
+泌尿器科,DR_U008,SL_0244,22,54.5,100.0,4.0,81.5
+泌尿器科,DR_U006,SL_0037,199,54.3,100.0,4.0,81.4
+泌尿器科,DR_U012,SL_0132,172,51.2,100.0,4.0,80.4
+耳鼻咽喉科,DR_ENT003,SL_0009,11,100.0,100.0,0.0,100.0
+耳鼻咽喉科,DR_ENT005,SL_0099,58,100.0,100.0,0.0,100.0
+耳鼻咽喉科,DR_ENT003,SL_0064,182,95.1,100.0,0.0,98.4
+耳鼻咽喉科,DR_ENT003,SL_0063,24,91.7,100.0,0.0,97.2
+耳鼻咽喉科,DR_ENT012,SL_0236,36,91.7,100.0,0.0,97.2
+耳鼻咽喉科,DR_ENT004,SL_0009,61,63.9,100.0,4.0,84.6
+耳鼻咽喉科,DR_ENT004,SL_0181,115,51.3,100.0,4.0,80.4
+耳鼻咽喉科,DR_ENT008,SL_0155,118,46.6,100.0,5.0,78.0
+耳鼻咽喉科,DR_ENT002,SL_0009,22,31.8,100.0,5.5,72.7
+耳鼻咽喉科,DR_ENT001,SL_0009,58,31.0,100.0,6.0,72.0
+耳鼻咽喉科,DR_ENT004,SL_0242,12,33.3,100.0,7.0,71.9
+耳鼻咽喉科,DR_ENT011,SL_0009,13,30.8,100.0,6.0,71.9
+耳鼻咽喉科,DR_ENT002,SL_0048,43,27.9,100.0,6.0,71.0
+耳鼻咽喉科,DR_ENT013,SL_0009,37,29.7,100.0,7.5,70.3
+耳鼻咽喉科,DR_ENT013,SL_0293,40,25.0,100.0,7.5,68.8
+整形外科,DR_OR009,SL_0165,40,97.5,100.0,0.0,99.2
+整形外科,DR_OR009,SL_0009,38,94.7,100.0,0.0,98.2
+整形外科,DR_OR005,SL_0009,62,59.7,100.0,0.0,86.6
+整形外科,DR_OR011,SL_0206,22,59.1,100.0,4.0,83.0
+整形外科,DR_OR004,SL_0069,85,57.6,100.0,4.0,82.5
+整形外科,DR_OR003,SL_0038,180,55.6,100.0,4.0,81.9
+整形外科,DR_OR022,SL_0421,54,40.7,100.0,5.0,76.1
+整形外科,DR_OR022,SL_0286,12,33.3,100.0,5.0,73.6
+整形外科,DR_OR006,SL_0081,58,32.8,100.0,6.0,72.6
+整形外科,DR_OR020,SL_0279,39,20.5,100.0,7.0,67.7
+整形外科,DR_OR008,SL_0147,29,17.2,100.0,7.0,66.6
+整形外科,DR_OR007,SL_0261,68,23.5,98.5,7.0,65.2
+整形外科,DR_OR019,SL_0275,27,18.5,100.0,10.0,64.5
+整形外科,DR_OR010,SL_0198,25,16.0,100.0,9.0,64.5
+整形外科,DR_OR001,SL_0001,47,12.8,100.0,8.5,63.8
+総合内科,DR_GM004,SL_0009,110,80.0,100.0,0.0,93.3
+総合内科,DR_GM001,SL_0009,33,72.7,100.0,0.5,90.5
+総合内科,DR_GM001,SL_0016,10,70.0,100.0,3.0,87.5
+総合内科,DR_GM012,SL_0009,13,38.5,100.0,8.0,72.8
+総合内科,DR_GM016,SL_0289,52,21.2,100.0,7.5,67.5
+総合内科,DR_GM013,SL_0247,27,25.9,100.0,10.0,67.0
+総合内科,DR_GM003,SL_0071,45,20.0,100.0,8.0,66.7
+総合内科,DR_GM008,SL_0149,19,21.1,100.0,11.0,64.5
+総合内科,DR_GM004,SL_0157,37,24.3,100.0,13.0,63.9
+総合内科,DR_GM017,SL_0330,29,10.3,100.0,8.5,63.0
+総合内科,DR_GM018,SL_0337,31,12.9,100.0,10.0,62.6
+総合内科,DR_GM007,SL_0148,24,16.7,100.0,12.5,61.8
+総合内科,DR_GM012,SL_0238,36,11.1,100.0,12.0,60.4
+総合内科,DR_GM009,SL_0172,110,8.2,100.0,11.0,60.2
+総合内科,DR_GM011,SL_0231,11,18.2,100.0,15.5,59.8
+皮膚科,DR_DM002,SL_0009,26,76.9,100.0,0.0,92.3
+皮膚科,DR_DM001,SL_0009,13,61.5,100.0,1.0,86.3
+皮膚科,DR_DM005,SL_0009,14,64.3,100.0,3.0,85.6
+皮膚科,DR_DM006,SL_0009,19,57.9,100.0,4.0,82.6
+皮膚科,DR_DM003,SL_0009,26,34.6,100.0,6.0,73.2
+皮膚科,DR_DM008,SL_0009,53,37.7,100.0,8.0,72.6
+皮膚科,DR_DM002,SL_0056,120,28.3,100.0,7.0,70.3
+皮膚科,DR_DM003,SL_0091,107,24.3,100.0,8.0,68.1
+皮膚科,DR_DM006,SL_0161,137,20.4,100.0,8.0,66.8
+皮膚科,DR_DM009,SL_0292,34,14.7,100.0,8.0,64.9
+皮膚科,DR_DM005,SL_0101,71,14.1,100.0,9.0,63.9
+皮膚科,DR_DM001,SL_0173,138,13.0,100.0,9.5,63.1
+皮膚科,DR_DM004,SL_0094,18,27.8,100.0,18.5,60.5
+皮膚科,DR_DM007,SL_0197,36,8.3,100.0,11.0,60.3
+消化器内科,DR_GI001,SL_0009,104,75.0,100.0,0.0,91.7
+消化器内科,DR_GI006,SL_0120,187,72.2,100.0,3.0,88.2
+消化器内科,DR_PD012,SL_0475,22,50.0,100.0,2.0,81.7
+消化器内科,DR_GI010,SL_0005,11,36.4,100.0,0.0,78.8
+消化器内科,DR_GI002,SL_0046,194,42.8,100.0,5.0,76.8
+消化器内科,DR_GI005,SL_0152,157,42.0,100.0,5.0,76.5
+消化器内科,DR_GI008,SL_0214,128,36.7,100.0,6.0,73.9
+消化器内科,DR_GI006,SL_0320,12,25.0,100.0,7.5,68.8
+消化器内科,DR_GI002,SL_0333,10,30.0,100.0,12.5,66.2
+消化器内科,DR_GI008,SL_0315,11,9.1,100.0,6.0,64.7
+消化器内科,DR_GI009,SL_0370,14,21.4,100.0,11.5,64.2
+消化器内科,DR_GI004,SL_0086,19,21.1,100.0,12.0,63.7
+消化器内科,DR_GI003,SL_0083,108,10.2,100.0,8.0,63.4
+消化器内科,DR_GI003,SL_0502,12,0.0,100.0,14.0,55.0
+血液内科,DR_HE005,SL_0216,65,86.2,100.0,2.0,93.7
+血液内科,DR_HE006,SL_0009,27,74.1,100.0,1.0,90.5
+血液内科,DR_HE004,SL_0169,95,72.6,100.0,3.0,88.4
+血液内科,DR_HE007,SL_0005,18,61.1,100.0,0.0,87.0
+血液内科,DR_HE004,SL_0009,13,61.5,100.0,1.0,86.3
+血液内科,DR_HE009,SL_0383,20,55.0,100.0,0.0,85.0
+血液内科,DR_RH005,SL_0009,11,54.5,100.0,1.0,84.0
+血液内科,DR_RH005,SL_0156,16,56.2,100.0,4.0,82.1
+血液内科,DR_HE001,SL_0012,135,51.9,100.0,4.0,80.6
+血液内科,DR_HE003,SL_0096,116,36.2,100.0,6.0,73.7
+血液内科,DR_HE002,SL_0089,56,32.1,100.0,6.0,72.4
+血液内科,DR_HE010,SL_0439,46,19.6,100.0,9.0,65.7
+血液内科,DR_GM018,SL_0389,19,0.0,100.0,10.0,58.3
+血液内科,DR_HE008,SL_0339,28,0.0,100.0,14.0,55.0
+乳腺外科,DR_BR004,SL_0135,17,58.8,100.0,1.0,85.4
+乳腺外科,DR_BR002,SL_0009,29,62.1,100.0,3.5,84.4
+乳腺外科,DR_BR006,SL_0175,176,59.1,100.0,4.0,83.0
+乳腺外科,DR_BR002,SL_0032,253,55.3,100.0,4.0,81.8
+乳腺外科,DR_BR003,SL_0077,218,49.5,100.0,4.0,79.8
+乳腺外科,DR_BR003,SL_0009,14,35.7,100.0,7.0,72.7
+乳腺外科,DR_BR007,SL_0009,21,38.1,100.0,8.0,72.7
+乳腺外科,DR_BR006,SL_0009,32,28.1,100.0,5.5,71.4
+乳腺外科,DR_BR008,SL_0241,74,21.6,100.0,8.0,67.2
+乳腺外科,DR_BR001,SL_0297,52,21.2,100.0,9.0,66.2
+乳腺外科,DR_BR007,SL_0182,55,18.2,100.0,10.0,64.4
+乳腺外科,DR_BR001,SL_0009,22,4.5,100.0,8.5,61.1
+リウマチ膠原病内科,DR_RH005,SL_0156,35,68.6,100.0,0.0,89.5
+リウマチ膠原病内科,DR_RH007,SL_0009,29,69.0,100.0,1.5,88.4
+リウマチ膠原病内科,DR_RH009,SL_0009,11,54.5,100.0,3.0,82.3
+リウマチ膠原病内科,DR_RH004,SL_0139,75,45.3,100.0,5.0,77.6
+リウマチ膠原病内科,DR_RH009,SL_0210,201,36.3,100.0,5.0,74.6
+リウマチ膠原病内科,DR_RH003,SL_0066,102,35.3,100.0,6.0,73.4
+リウマチ膠原病内科,DR_RH003,SL_0009,15,26.7,100.0,6.0,70.6
+リウマチ膠原病内科,DR_RH010,SL_0222,66,22.7,100.0,6.0,69.2
+リウマチ膠原病内科,DR_RH006,SL_0174,117,8.5,100.0,8.5,62.4
+リウマチ膠原病内科,DR_RH001,SL_0008,37,5.4,100.0,8.0,61.8
+リウマチ膠原病内科,DR_RH002,SL_0014,53,3.8,100.0,11.0,58.8
+リウマチ膠原病内科,DR_RH008,SL_0201,16,0.0,100.0,14.0,55.0
+呼吸器内科,DR_RS2009,SL_0009,65,58.5,100.0,0.0,86.2
+呼吸器内科,DR_RS2003,SL_0061,113,43.4,100.0,5.0,77.0
+呼吸器内科,DR_RS2004,SL_0009,26,38.5,100.0,6.0,74.5
+呼吸器内科,DR_RS2005,SL_0100,85,34.1,100.0,6.0,73.0
+呼吸器内科,DR_AL002,SL_0189,108,33.3,100.0,6.0,72.8
+呼吸器内科,DR_RS2010,SL_0167,73,32.9,100.0,6.0,72.6
+呼吸器内科,DR_AL001,SL_0033,33,18.2,100.0,6.5,67.3
+呼吸器内科,DR_RS2006,SL_0106,96,20.8,100.0,8.0,66.9
+呼吸器内科,DR_RS2004,SL_0082,184,20.1,100.0,9.0,65.9
+呼吸器内科,DR_RS2007,SL_0126,15,20.0,100.0,11.5,63.8
+呼吸器内科,DR_RS2008,SL_0127,44,6.8,100.0,13.0,58.1
+呼吸器内科,DR_RS2002,SL_0030,17,11.8,100.0,16.0,57.3
+呼吸器内科,DR_RS2009,SL_0366,15,26.7,93.3,12.0,49.9
+循環器内科,DR_CV002,SL_0009,119,62.2,100.0,0.0,87.4
+循環器内科,DR_CV008,SL_0150,182,42.9,100.0,5.0,76.8
+循環器内科,DR_CV004,SL_0034,93,31.2,100.0,6.0,72.1
+循環器内科,DR_CV001,SL_0044,143,23.8,99.3,6.0,68.0
+循環器内科,DR_CV003,SL_0031,89,19.1,100.0,8.0,66.4
+循環器内科,DR_CV001,SL_0009,25,12.0,100.0,8.0,64.0
+循環器内科,DR_CV010,SL_0193,108,13.0,100.0,10.0,62.7
+循環器内科,DR_CV009,SL_0153,70,10.0,100.0,10.0,61.7
+循環器内科,DR_CV011,SL_0196,58,5.2,100.0,8.5,61.3
+循環器内科,DR_CV007,SL_0078,41,9.8,100.0,11.0,60.8
+循環器内科,DR_CV006,SL_0067,89,1.1,100.0,11.0,57.9
+循環器内科,DR_CV005,SL_0058,14,57.1,85.7,2.0,50.7
+循環器内科,DR_CV002,SL_0118,20,30.0,90.0,11.0,44.2
+一般消化器外科,DR_BR005,SL_0009,22,90.9,100.0,0.0,97.0
+一般消化器外科,DR_GS011,SL_0009,26,80.8,100.0,0.0,93.6
+一般消化器外科,DR_GS006,SL_0202,73,52.1,100.0,4.0,80.7
+一般消化器外科,DR_GS004,SL_0109,58,48.3,100.0,5.0,78.6
+一般消化器外科,DR_GS002,SL_0085,66,45.5,100.0,4.5,78.1
+一般消化器外科,DR_GS001,SL_0022,160,43.8,100.0,5.0,77.1
+一般消化器外科,DR_GS003,SL_0103,134,12.7,100.0,8.0,64.2
+一般消化器外科,DR_GS008,SL_0229,35,22.9,100.0,13.0,63.5
+一般消化器外科,DR_GS009,SL_0374,48,10.4,100.0,10.5,61.4
+一般消化器外科,DR_GS005,SL_0194,20,0.0,100.0,13.0,55.8
+放射線治療科,DR_RT004,SL_0009,32,71.9,100.0,2.0,89.0
+放射線治療科,DR_RT002,SL_0134,375,65.1,100.0,3.0,85.9
+放射線治療科,DR_RT002,SL_0009,55,61.8,100.0,2.0,85.6
+放射線治療科,DR_RT004,SL_0108,124,61.3,100.0,3.0,84.6
+放射線治療科,DR_RT005,SL_0209,38,55.3,100.0,4.0,81.8
+放射線治療科,DR_RT005,SL_0009,10,50.0,100.0,4.0,80.0
+放射線治療科,DR_RT001,SL_0023,19,26.3,100.0,7.0,69.6
+放射線治療科,DR_RT003,SL_0050,22,22.7,100.0,7.0,68.4
+放射線治療科,DR_RT006,SL_0251,25,28.0,100.0,29.0,51.8
+歯科口腔外科,DR_OS015,SL_0009,14,92.9,100.0,0.0,97.6
+歯科口腔外科,DR_OS005,SL_0133,11,63.6,100.0,0.0,87.9
+歯科口腔外科,DR_OS014,SL_0372,12,33.3,100.0,6.0,72.8
+歯科口腔外科,DR_OS003,SL_0009,14,35.7,100.0,8.0,71.9
+歯科口腔外科,DR_OS002,SL_0009,19,36.8,100.0,11.0,69.8
+歯科口腔外科,DR_OS007,SL_0141,13,30.8,100.0,14.0,65.3
+歯科口腔外科,DR_OS004,SL_0009,23,21.7,100.0,12.0,63.9
+歯科口腔外科,DR_OS010,SL_0009,14,21.4,100.0,16.0,60.5
+歯科口腔外科,DR_OS002,SL_0060,102,6.9,100.0,12.0,59.0
+歯科口腔外科,DR_OS004,SL_0123,100,9.0,100.0,14.0,58.0
+歯科口腔外科,DR_OS003,SL_0080,50,8.0,100.0,14.0,57.7
+歯科口腔外科,DR_OS006,SL_0285,50,12.0,100.0,17.0,56.5
+歯科口腔外科,DR_OS001,SL_0009,10,0.0,100.0,15.0,54.2
+歯科口腔外科,DR_OS008,SL_0329,11,9.1,100.0,22.5,50.9
+歯科口腔外科,DR_OS011,SL_0322,22,13.6,100.0,30.0,46.2
+形成外科,DR_PS003,SL_0009,36,33.3,100.0,8.0,71.1
+形成外科,DR_PS005,SL_0009,11,27.3,100.0,8.0,69.1
+形成外科,DR_PS002,SL_0062,14,21.4,100.0,8.5,66.7
+形成外科,DR_PS005,SL_0265,75,20.0,100.0,9.0,65.8
+形成外科,DR_PS003,SL_0093,68,19.1,100.0,9.0,65.5
+形成外科,DR_PS008,SL_0336,10,10.0,100.0,7.0,64.2
+形成外科,DR_PS004,SL_0245,52,9.6,100.0,11.0,60.7
+形成外科,DR_PS006,SL_0288,17,11.8,100.0,13.0,59.8
+形成外科,DR_PS004,SL_0009,14,14.3,100.0,18.0,56.4
+腎内科,DR_NE004,SL_0348,29,89.7,100.0,0.0,96.6
+腎内科,DR_NE005,SL_0009,31,64.5,100.0,0.0,88.2
+腎内科,DR_NE002,SL_0041,229,31.9,100.0,6.0,72.3
+腎内科,DR_NE006,SL_0364,15,20.0,100.0,6.0,68.3
+腎内科,DR_NE003,SL_0203,48,16.7,100.0,9.5,64.3
+腎内科,DR_NE001,SL_0027,150,10.0,100.0,8.0,63.3
+腎内科,DR_NE001,SL_0009,27,18.5,100.0,29.5,48.2
+腎内科,DR_NE003,SL_0009,10,0.0,100.0,24.0,46.7
+脳神経内科,DR_NR002,SL_0009,50,74.0,100.0,0.0,91.3
+脳神経内科,DR_NR003,SL_0160,68,47.1,100.0,5.0,78.2
+脳神経内科,DR_NR001,SL_0013,159,30.2,100.0,6.0,71.7
+脳神経内科,DR_NR005,SL_0291,34,11.8,100.0,7.5,64.4
+脳神経外科,DR_NS001,SL_0009,10,70.0,100.0,0.0,90.0
+脳神経外科,DR_NS004,SL_0302,37,29.7,100.0,7.5,70.3
+脳神経外科,DR_NS003,SL_0184,43,23.3,100.0,8.0,67.8
+脳神経外科,DR_NS005,SL_0343,46,15.2,100.0,9.0,64.2
+アレルギー科,DR_RS2003,SL_0061,42,42.9,100.0,5.0,76.8
+アレルギー科,DR_RS2005,SL_0100,24,20.8,100.0,6.0,68.6
+アレルギー科,DR_AL001,SL_0033,29,13.8,100.0,7.0,65.4
+アレルギー科,DR_AL002,SL_0189,44,6.8,100.0,7.0,63.1
+メンタルケア科,DR_MN002,SL_0009,78,50.0,100.0,4.0,80.0
+メンタルケア科,DR_MN004,SL_0255,37,32.4,100.0,7.0,71.6
+メンタルケア科,DR_MN001,SL_0043,126,21.4,100.0,9.0,66.3
+メンタルケア科,DR_MN003,SL_0084,39,2.6,100.0,17.0,53.4
+心臓血管外科,DR_CS003,SL_0009,10,60.0,100.0,0.5,86.2
+心臓血管外科,DR_CS002,SL_0168,27,11.1,100.0,8.0,63.7
+心臓血管外科,DR_CS001,SL_0163,34,11.8,100.0,10.0,62.3
+小児科,DR_PD011,SL_0009,10,30.0,100.0,12.0,66.7
+小児科,DR_PD002,SL_0070,30,10.0,100.0,6.0,65.0
+小児科,DR_PD001,SL_0020,27,22.2,100.0,13.0,63.2
+小児科,DR_PD004,SL_0177,31,16.1,100.0,15.0,59.5
+小児科,DR_PD009,SL_0257,13,0.0,100.0,10.0,58.3
+小児科,DR_PD008,SL_0250,21,14.3,100.0,18.0,56.4
+小児科,DR_PD004,SL_0270,10,10.0,100.0,16.5,56.2
+小児科,DR_PD007,SL_0351,24,4.2,100.0,16.0,54.7
+小児科,DR_PD005,SL_0328,15,0.0,100.0,15.0,54.2
+小児科,DR_PD003,SL_0098,18,0.0,100.0,15.0,54.2
+小児科,DR_PD006,SL_0503,14,14.3,100.0,21.0,53.9
+小児科,DR_PD001,SL_0313,15,0.0,100.0,15.5,53.8
+小児科,DR_PD007,SL_0239,12,0.0,100.0,17.0,52.5
+小児科,DR_PD006,SL_0272,25,0.0,100.0,22.5,47.9
+小児科,DR_PD003,SL_0399,12,0.0,100.0,23.5,47.1
+呼吸器外科,DR_RS2012,SL_0188,71,16.9,100.0,9.0,64.8
+呼吸器外科,DR_RS2001,SL_0024,60,13.3,100.0,9.0,63.6
+臨床腫瘍科,DR_ON001,SL_0088,80,13.8,100.0,8.5,64.2
+臨床腫瘍科,DR_ON001,SL_0009,28,14.3,100.0,12.5,61.0
+救急科,DR_ER001,SL_0072,69,34.8,97.1,8.0,64.8
+救急科,DR_ER002,SL_0395,13,0.0,100.0,22.0,48.3
+内科,DR_IM001,SL_0015,108,38.0,87.0,9.5,41.1
+糖尿病内分泌内科,DR_DB001,SL_0264,12,8.3,100.0,17.5,54.8
+糖尿病内分泌内科,DR_DB002,SL_0282,36,2.8,100.0,17.0,53.4</script>
+<script>
+(function() {
+  const btn = document.getElementById("export-csv-btn");
+  const dataEl = document.getElementById("export-csv-data");
+  btn.addEventListener("click", function() {
+    const csv = "\ufeff" + dataEl.textContent;
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "drug_revisit_candidates_2026-04.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+})();
+</script>
+
+<script>// 共通ユーティリティ（Chart.js のデフォルト、数値整形、評価バッジ生成など）
+
+const OutpatientCommon = (() => {
+  const palette = {
+    naika: '#5b8a72',
+    geka: '#b25c2e',
+    other: '#9a7c4e',
+    primary: '#b25c2e',
+    accent: '#3d6b7d',
+    muted: '#6b6660',
+  };
+
+  function formatInt(n) {
+    if (n == null || Number.isNaN(n)) return '-';
+    return Math.round(n).toLocaleString('ja-JP');
+  }
+
+  function formatPct(n, digits = 1) {
+    if (n == null || Number.isNaN(n)) return '-';
+    return `${n.toFixed(digits)}%`;
+  }
+
+  function gradeFromPct(pct, inverse = false) {
+    if (pct == null || Number.isNaN(pct)) return 'D';
+    if (inverse) {
+      if (pct <= 90) return 'S';
+      if (pct <= 100) return 'A';
+      if (pct <= 110) return 'B';
+      if (pct <= 125) return 'C';
+      return 'D';
+    }
+    if (pct >= 110) return 'S';
+    if (pct >= 100) return 'A';
+    if (pct >= 90) return 'B';
+    if (pct >= 75) return 'C';
+    return 'D';
+  }
+
+  function gradeBadge(grade) {
+    const el = document.createElement('span');
+    el.className = `grade grade-${grade}`;
+    el.textContent = grade;
+    return el.outerHTML;
+  }
+
+  function typeBadge(type) {
+    const label = { naika: '内科', geka: '外科', other: 'その他' }[type] || type;
+    return `<span class="type-badge type-${type}">${label}</span>`;
+  }
+
+  if (typeof window !== 'undefined' && window.Chart) {
+    Chart.defaults.font.family =
+      '-apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#2d2a26';
+  }
+
+  return { palette, formatInt, formatPct, gradeFromPct, gradeBadge, typeBadge };
+})();
+</script>
+</main>
+
+<footer class="site-footer">
+  外来効率化ダッシュボード
+</footer>
+
+
+</body>
+</html>
