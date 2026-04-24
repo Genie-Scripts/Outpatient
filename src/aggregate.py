@@ -270,6 +270,70 @@ def _agg_hourly_load(df: pd.DataFrame) -> pd.DataFrame:
     ]].sort_values(["診療科名", "曜日", "bin_idx"]).reset_index(drop=True)
 
 
+def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
+    """曜日×30分刻みの医師別出勤パターンを集計する。
+
+    - 出勤日数: 当該(医師, 曜日, bin)で1件以上診察した日数
+    - 該当日数: 当該曜日が月内に存在した日数（データ内の distinct 予約日）
+    - 出勤頻度率: 出勤日数 / 該当日数（0.0-1.0）。毎週同じ枠を開けていれば 1.0
+    - 件数合計: 当該ビンでの月内総診察件数（複数ビンにまたがる診察は各ビンに1カウント）
+    ビンは 08:00-20:00（12時間 / 30分 = 24ビン）。
+    """
+    valid = df[_valid_time_mask(df)].copy()
+    if valid.empty:
+        return pd.DataFrame(columns=[
+            "診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx", "bin_label",
+            "出勤日数", "該当日数", "出勤頻度率", "件数合計",
+        ])
+
+    day_start = HEATMAP_DAY_START_H * 60
+    valid["start_bin"] = np.clip(
+        (valid["開始_分"] - day_start) // HEATMAP_BIN_MIN, 0, HEATMAP_BIN_COUNT - 1
+    ).astype(int)
+    valid["end_bin"] = np.clip(
+        (valid["終了_分"] - 1 - day_start) // HEATMAP_BIN_MIN, 0, HEATMAP_BIN_COUNT - 1
+    ).astype(int)
+
+    valid["bin_list"] = valid.apply(
+        lambda r: list(range(r["start_bin"], r["end_bin"] + 1)), axis=1
+    )
+    exploded = valid.explode("bin_list").copy()
+    exploded["bin_idx"] = exploded["bin_list"].astype(int)
+
+    per_bin = (
+        exploded.groupby(["診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx"])
+        .agg(
+            出勤日数=("予約日", "nunique"),
+            件数合計=("予約日", "size"),
+        )
+        .reset_index()
+    )
+
+    weekday_days = (
+        valid.groupby("曜日")["予約日"].nunique().rename("該当日数").reset_index()
+    )
+
+    merged = per_bin.merge(weekday_days, on="曜日", how="left")
+    merged["該当日数"] = merged["該当日数"].fillna(0).astype(int)
+    merged["出勤頻度率"] = np.where(
+        merged["該当日数"] > 0,
+        (merged["出勤日数"] / merged["該当日数"]).round(3),
+        0.0,
+    )
+
+    def _label(idx: int) -> str:
+        total = day_start + idx * HEATMAP_BIN_MIN
+        return f"{total // 60:02d}:{total % 60:02d}"
+
+    merged["bin_label"] = merged["bin_idx"].apply(_label)
+    return merged[[
+        "診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx", "bin_label",
+        "出勤日数", "該当日数", "出勤頻度率", "件数合計",
+    ]].sort_values(
+        ["診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx"]
+    ).reset_index(drop=True)
+
+
 def _agg_drug_revisit_score(df: pd.DataFrame) -> pd.DataFrame:
     """医師×枠×月ごとに薬再診候補スコアを算出する。
 
@@ -458,6 +522,9 @@ def aggregate_monthly_data(
 
     _write(_agg_drug_revisit_score(df), out / "13_drug_revisit_score.csv")
     generated.append("13_drug_revisit_score.csv")
+
+    _write(_agg_doctor_hourly(df), out / "14_doctor_hourly.csv")
+    generated.append("14_doctor_hourly.csv")
 
     logger.info("集計完了: %d行 → %d ファイル (%s)", len(df), len(generated), out)
     return AggregationResult(
