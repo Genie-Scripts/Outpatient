@@ -269,6 +269,64 @@ def anonymize_monthly_data(
     return result
 
 
+def passthrough_monthly_data(
+    input_path: Path,
+    output_path: Path,
+) -> AnonymizationResult:
+    """匿名化をスキップし、列名変換のみ行う。ローカル確認専用。
+
+    master_key.csv / slot_key.csv は更新しない。
+    """
+    df = _read_csv_auto_encoding(input_path)
+    if SOURCE_COLUMN not in df.columns:
+        raise ValueError(f"入力データに列 '{SOURCE_COLUMN}' がありません")
+    df = df.copy().rename(columns={SOURCE_COLUMN: TARGET_COLUMN})
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_path, index=False, encoding="utf-8-sig")
+    return AnonymizationResult(
+        input_path=input_path,
+        output_path=output_path,
+        total_rows=len(df),
+        unique_names_total=df[TARGET_COLUMN].nunique(),
+    )
+
+
+def passthrough_directory(
+    raw_dir: Path,
+    output_dir: Path,
+) -> DirectoryAnonymizationResult:
+    """raw_dir 内の全CSVをマージして列名変換のみ行い、月別に分割出力する。ローカル確認専用。"""
+    csv_files = [f for f in sorted(raw_dir.glob("*.csv")) if f.is_file()]
+    if not csv_files:
+        raise FileNotFoundError(f"CSVファイルが見つかりません: {raw_dir}")
+
+    frames = [_read_csv_auto_encoding(f) for f in csv_files]
+    merged = pd.concat(frames, ignore_index=True)
+    if SOURCE_COLUMN not in merged.columns:
+        raise ValueError(f"入力データに列 '{SOURCE_COLUMN}' がありません")
+
+    df = merged.copy().rename(columns={SOURCE_COLUMN: TARGET_COLUMN})
+    dates = pd.to_datetime(df[DATE_COLUMN], errors="coerce")
+    df["_month"] = dates.dt.to_period("M").astype(str)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    months: list[str] = []
+    for month, group in df.groupby("_month"):
+        month = str(month)
+        if month == "NaT":
+            logger.warning("日付不正な %d 行をスキップ", len(group))
+            continue
+        out_path = output_dir / f"raw_data_{month}.csv"
+        group.drop(columns=["_month"]).to_csv(out_path, index=False, encoding="utf-8-sig")
+        months.append(month)
+
+    return DirectoryAnonymizationResult(
+        input_files=csv_files,
+        months=sorted(months),
+        total_rows=len(df),
+    )
+
+
 def anonymize_directory(
     raw_dir: Path,
     output_dir: Path,

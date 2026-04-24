@@ -32,7 +32,7 @@ def _display_name(index: int) -> str:
 
 
 def _dept_doctor_rows(
-    doctor_df: pd.DataFrame, dept: str
+    doctor_df: pd.DataFrame, dept: str, use_real_names: bool = False
 ) -> list[dict[str, Any]]:
     sub = doctor_df[doctor_df["診療科名"] == dept]
     if sub.empty:
@@ -52,12 +52,13 @@ def _dept_doctor_rows(
         .reset_index()
     )
 
+    doctor_ids = agg[DOCTOR_COLUMN].tolist()
     rows: list[dict[str, Any]] = []
     for i, r in enumerate(agg.itertuples(index=False), start=1):
         sps = round(r.sai / r.sho, 1) if r.sho > 0 else 0.0
         shokai_rate = round(r.shokai_sho / r.sho * 100, 1) if r.sho > 0 else 0.0
         rows.append({
-            "display_name": _display_name(i),
+            "display_name": str(doctor_ids[i - 1]) if use_real_names else _display_name(i),
             "total": int(r.total),
             "sho": int(r.sho),
             "sai": int(r.sai),
@@ -80,6 +81,7 @@ def build_doctor_analysis(
     classification_path: Path,
     theme_css: str,
     common_js: str,
+    use_real_names: bool = False,
 ) -> Path:
     """評価対象の全診療科について、医師別一覧HTMLを1枚生成する。"""
     classifier = DeptClassifier(classification_path)
@@ -87,7 +89,7 @@ def build_doctor_analysis(
 
     sections: list[dict[str, Any]] = []
     for info in classifier.evaluation_targets():
-        rows = _dept_doctor_rows(data.doctor_summary, info.name)
+        rows = _dept_doctor_rows(data.doctor_summary, info.name, use_real_names=use_real_names)
         if not rows:
             continue
         sections.append({

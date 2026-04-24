@@ -107,7 +107,9 @@ def _timezone_chart_data(tz_df: pd.DataFrame, dept: str) -> dict[str, Any]:
     return {"labels": WEEKDAY_LABELS, "datasets": datasets}
 
 
-def _top_doctors(doctor_df: pd.DataFrame, dept: str) -> list[dict[str, Any]]:
+def _top_doctors(
+    doctor_df: pd.DataFrame, dept: str, use_real_names: bool = False
+) -> list[dict[str, Any]]:
     sub = doctor_df[doctor_df["診療科名"] == dept]
     if sub.empty:
         return []
@@ -127,10 +129,15 @@ def _top_doctors(doctor_df: pd.DataFrame, dept: str) -> list[dict[str, Any]]:
         .reset_index()
     )
 
+    doctor_ids = agg["予約担当者匿名ID"].tolist()
     rows = []
     for i, row in enumerate(agg.itertuples(index=False), start=1):
+        if use_real_names:
+            display = str(doctor_ids[i - 1])
+        else:
+            display = f"医師{chr(64 + i) if i <= 26 else i}"
         rows.append({
-            "display_name": f"医師{chr(64 + i) if i <= 26 else i}",
+            "display_name": display,
             "total": int(row.total),
             "sho": int(row.sho),
             "sai": int(row.sai),
@@ -223,6 +230,7 @@ def build_dept_drilldown(
     targets_path: Path,
     theme_css: str,
     common_js: str,
+    use_real_names: bool = False,
 ) -> list[Path]:
     """評価対象の全診療科について深掘りHTMLを一括生成する。"""
     classifier = DeptClassifier(classification_path)
@@ -252,7 +260,7 @@ def build_dept_drilldown(
 
         kpis = _kpi_evaluations(summary, target_map.get(info.name, {}))
         timezone_data = _timezone_chart_data(data.dept_timezone, info.name)
-        doctors = _top_doctors(data.doctor_summary, info.name)
+        doctors = _top_doctors(data.doctor_summary, info.name, use_real_names=use_real_names)
         rr_rows, rr_total = _reverse_referral(data.reverse_referral, info.name, month)
 
         html = _render(

@@ -53,8 +53,10 @@ def _build_tz_detail(data: AggregatedData, dept: str) -> dict[str, int]:
     }
 
 
-def _build_doctor_detail(data: AggregatedData, dept: str) -> list[dict[str, Any]]:
-    """当月の医師別件数（匿名・上位N名）を返す。"""
+def _build_doctor_detail(
+    data: AggregatedData, dept: str, use_real_names: bool = False
+) -> list[dict[str, Any]]:
+    """当月の医師別件数（上位N名）を返す。"""
     sub = data.doctor_summary[data.doctor_summary["診療科名"] == dept]
     if sub.empty:
         return []
@@ -68,11 +70,16 @@ def _build_doctor_detail(data: AggregatedData, dept: str) -> list[dict[str, Any]
         .head(DOCTOR_LIMIT)
         .reset_index()
     )
+    doctor_ids = agg["予約担当者匿名ID"].tolist()
     rows = []
     for i, r in enumerate(agg.itertuples(index=False), start=1):
-        label = chr(64 + i) if i <= 26 else str(i)
         rate = round(r.sho / r.total * 100, 1) if r.total > 0 else 0.0
-        rows.append({"n": f"医師{label}", "total": int(r.total), "sho": int(r.sho), "rate": rate})
+        if use_real_names:
+            n = str(doctor_ids[i - 1])
+        else:
+            label = chr(64 + i) if i <= 26 else str(i)
+            n = f"医師{label}"
+        rows.append({"n": n, "total": int(r.total), "sho": int(r.sho), "rate": rate})
     return rows
 
 
@@ -120,6 +127,7 @@ def _build_dashboard_data(
     classifier: DeptClassifier,
     user_targets: dict[str, dict[str, float]],
     n_months: int = 6,
+    use_real_names: bool = False,
 ) -> dict[str, Any]:
     """対象月を最終月として、過去n_months分のトレンドデータを構築。"""
     months = load_last_n_months(aggregated_root, month, n=n_months)
@@ -234,7 +242,7 @@ def _build_dashboard_data(
         rare, saijyu, kairi = _build_slot_detail(slot_frames, dept_name)
         detail[dept_name] = {
             "tz": _build_tz_detail(current_data, dept_name),
-            "doctors": _build_doctor_detail(current_data, dept_name),
+            "doctors": _build_doctor_detail(current_data, dept_name, use_real_names=use_real_names),
             "rare": rare,
             "saijyu": saijyu,
             "kairi": kairi,
@@ -304,6 +312,7 @@ def build_monthly_dashboard(
     targets_path: Path,
     llm_config_path: Path,
     use_llm: bool = True,
+    use_real_names: bool = False,
 ) -> None:
     """月次ダッシュボードを生成する。
 
@@ -316,11 +325,12 @@ def build_monthly_dashboard(
         targets_path: config/dept_targets.csv
         llm_config_path: config/llm_config.yaml
         use_llm: FalseならLLMを呼ばず定型文で生成
+        use_real_names: Trueなら医師実名を表示（ローカル専用）
     """
     classifier = DeptClassifier(classification_path)
     user_targets = _load_targets(targets_path)
 
-    data = _build_dashboard_data(aggregated_root, month, classifier, user_targets)
+    data = _build_dashboard_data(aggregated_root, month, classifier, user_targets, use_real_names=use_real_names)
     candidates = extract_highlights(data["depts"])
 
     llm = LLMClient(llm_config_path, enabled=use_llm)

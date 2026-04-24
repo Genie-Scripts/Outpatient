@@ -31,6 +31,9 @@ config/master_key.csv
 # 予約名称↔匿名ID 対応表（Gitコミット厳禁）
 config/slot_key.csv
 
+# ローカル確認用（実名表示・Gitコミット厳禁）
+local/
+
 # 一時作業
 Temp/
 
