@@ -5,6 +5,7 @@ import pandas as pd
 
 from src.aggregate import (
     DRUG_REVISIT_MIN_RECORDS,
+    _agg_doctor_hourly,
     _agg_drug_revisit_score,
     _agg_hourly_load,
     _preprocess,
@@ -120,6 +121,53 @@ def test_agg_drug_revisit_score_requires_min_records() -> None:
     assert drug_row["短時間再診比率"] == 1.0
     assert drug_row["紹介状なし再診比率"] == 1.0
     assert drug_row["診察時間中央値_再診"] == 3.0
+
+
+def test_agg_doctor_hourly_frequency_and_count() -> None:
+    # 月曜: 4日 (3/2, 3/9, 3/16, 3/23)。DR_U001が毎週09:00bin、DR_U002が2/4日のみ09:30bin
+    mondays = ["2026-03-02", "2026-03-09", "2026-03-16", "2026-03-23"]
+    rows = []
+    for d in mondays:
+        rows.append(_base_row(date=d, kaishi="09:00:00", shuryo="09:15:00", doctor="DR_U001"))
+    rows.append(_base_row(date="2026-03-02", kaishi="09:30:00", shuryo="09:45:00", doctor="DR_U002"))
+    rows.append(_base_row(date="2026-03-16", kaishi="09:30:00", shuryo="09:45:00", doctor="DR_U002"))
+    proc = _preprocess(pd.DataFrame(rows))
+    out = _agg_doctor_hourly(proc)
+
+    u001_0900 = out[
+        (out["予約担当者匿名ID"] == "DR_U001")
+        & (out["曜日"] == 0)
+        & (out["bin_idx"] == 2)
+    ]
+    assert not u001_0900.empty
+    r = u001_0900.iloc[0]
+    assert r["bin_label"] == "09:00"
+    assert r["出勤日数"] == 4
+    assert r["該当日数"] == 4
+    assert r["出勤頻度率"] == 1.0
+    assert r["件数合計"] == 4
+
+    u002_0930 = out[
+        (out["予約担当者匿名ID"] == "DR_U002")
+        & (out["曜日"] == 0)
+        & (out["bin_idx"] == 3)
+    ]
+    r = u002_0930.iloc[0]
+    assert r["出勤日数"] == 2
+    assert r["該当日数"] == 4
+    assert r["出勤頻度率"] == 0.5
+    assert r["件数合計"] == 2
+
+
+def test_agg_doctor_hourly_empty_when_no_valid() -> None:
+    rows = [_base_row(kaishi="00:00:01", shuryo="00:00:10", shinsatsu_jikan=0.1)]
+    proc = _preprocess(pd.DataFrame(rows))
+    out = _agg_doctor_hourly(proc)
+    assert out.empty
+    assert list(out.columns) == [
+        "診療科名", "予約担当者匿名ID", "曜日", "bin_idx", "bin_label",
+        "出勤日数", "該当日数", "出勤頻度率", "件数合計",
+    ]
 
 
 def test_agg_drug_revisit_score_empty_when_no_sai() -> None:
