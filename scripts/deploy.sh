@@ -117,17 +117,29 @@ if git diff --cached --quiet; then
 fi
 
 # ── 4. コミット ──
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 MONTH_TAG="${1:-auto}"
 MSG="Dashboard update (${MONTH_TAG}): $(date '+%Y/%m/%d %H:%M')"
 git commit -m "$MSG" 2>&1 | tee -a "$LOG"
 log "✅ コミット: $MSG"
 
+# ── 4b. リモート進行分を取り込み（非 fast-forward による push 失敗を防止）──
+log "🔄 origin/$CURRENT_BRANCH と同期中..."
+git fetch origin "$CURRENT_BRANCH" 2>&1 | tee -a "$LOG" || true
+if git rev-parse --verify "origin/$CURRENT_BRANCH" > /dev/null 2>&1; then
+  if ! git rebase "origin/$CURRENT_BRANCH" 2>&1 | tee -a "$LOG"; then
+    git rebase --abort 2>/dev/null || true
+    error_dialog "origin/$CURRENT_BRANCH への rebase に失敗しました。手動で $CURRENT_BRANCH を更新してから再実行してください。"
+    exit 1
+  fi
+  log "✅ rebase 完了"
+fi
+
 # ── 5. プッシュ（現在のブランチへ）──
-CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 log "⬆️  push 中 (branch: $CURRENT_BRANCH)..."
 notify "GitHubへ送信中..." "⬆️ push 中"
 if ! git push origin "$CURRENT_BRANCH" 2>&1 | tee -a "$LOG"; then
-  error_dialog "GitHubへのpushに失敗しました (branch: $CURRENT_BRANCH)。SSH接続を確認してください。"
+  error_dialog "GitHubへのpushに失敗しました (branch: $CURRENT_BRANCH)。ログ $LOG で原因を確認してください。"
   exit 1
 fi
 
