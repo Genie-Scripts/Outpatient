@@ -1,11 +1,18 @@
 <div class="card">
-  <h2>曜日×時間帯ヒートマップ — {{ month }}</h2>
+  <h2>曜日×時間帯ヒートマップ</h2>
   <p class="site-meta">
     セルの濃淡は選択中の指標の大きさ。赤破線は看護師時短勤務のカットオフ({{ nurse_cutoff_h }}:00)。
     黄◆は{{ peak_warn_hours|join("-") }}時帯ピーク警告。
   </p>
 
   <div class="heatmap-controls">
+    <label>評価月：
+      <select id="heatmap-month">
+        {% for m in months %}
+        <option value="{{ m }}" {% if m == default_month %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </label>
     <label>診療科フィルタ：
       <select id="heatmap-filter">
         {% for o in filter_options %}
@@ -107,8 +114,9 @@
 
 <script>
 (function() {
-  const dataset = {{ dataset_json | safe }};
+  const datasetByMonth = {{ dataset_json | safe }};
   const table = document.getElementById("heatmap-table");
+  const monthSel = document.getElementById("heatmap-month");
   const filterSel = document.getElementById("heatmap-filter");
   const metricSel = document.getElementById("heatmap-metric");
   const caption = document.getElementById("heatmap-caption");
@@ -126,15 +134,26 @@
   }
 
   function render() {
+    const month = monthSel.value;
     const key = filterSel.value;
     const metric = metricSel.value;
+    const dataset = datasetByMonth[month];
+    if (!dataset) {
+      caption.textContent = `${month} のデータが見つかりません`;
+      return;
+    }
     const series = dataset[key];
-    if (!series) return;
+    if (!series) {
+      caption.textContent = `${month} / ${key}: データなし`;
+      const cells = table.querySelectorAll("td.hm-cell");
+      cells.forEach(td => { td.style.background = palette[0]; td.textContent = ""; td.title = ""; });
+      return;
+    }
     const matrix = series[metric];
     let max = 0;
     for (const row of matrix) for (const v of row) if (v > max) max = v;
 
-    caption.textContent = `${series.label} / 最大値: ${max.toFixed(1)}`;
+    caption.textContent = `${month} / ${series.label} / 最大値: ${max.toFixed(1)}`;
 
     const cells = table.querySelectorAll("td.hm-cell");
     cells.forEach(td => {
@@ -148,6 +167,7 @@
     });
   }
 
+  monthSel.addEventListener("change", render);
   filterSel.addEventListener("change", render);
   metricSel.addEventListener("change", render);
   render();

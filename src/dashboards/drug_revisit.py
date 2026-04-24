@@ -9,6 +9,7 @@
 """
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -111,39 +112,53 @@ def _build_export_csv(sections: list[dict[str, Any]]) -> str:
 
 
 def build_drug_revisit(
-    month: str,
+    months: list[str],
     aggregated_root: Path,
     templates_dir: Path,
     output_path: Path,
     classification_path: Path,
     theme_css: str,
     common_js: str,
+    default_month: str | None = None,
 ) -> Path:
-    """薬再診候補スコア ダッシュボードHTMLを1枚生成する。"""
+    """薬再診候補スコア ダッシュボードHTMLを1枚生成する（全月埋め込み）。"""
     classifier = DeptClassifier(classification_path)
-    score_df = _load_score(aggregated_root, month)
+    if not months:
+        raise ValueError("months が空です")
 
-    sections = _build_dept_sections(score_df, month, classifier)
-    overview = _build_overview(sections)
-    export_csv = _build_export_csv(sections)
+    sorted_months = sorted(months)
+    default_month = default_month or sorted_months[-1]
+
+    months_data: list[dict[str, Any]] = []
+    export_csv_by_month: dict[str, str] = {}
+    for m in sorted_months:
+        score_df = _load_score(aggregated_root, m)
+        sections = _build_dept_sections(score_df, m, classifier)
+        overview = _build_overview(sections)
+        months_data.append({
+            "month": m,
+            "overview": overview,
+            "sections": sections,
+        })
+        export_csv_by_month[m] = _build_export_csv(sections)
 
     env = Environment(
         loader=FileSystemLoader(str(templates_dir)),
         autoescape=select_autoescape(["html"]),
     )
     body = env.get_template("drug_revisit.html").render(
-        month=month,
-        overview=overview,
-        sections=sections,
+        months=sorted_months,
+        default_month=default_month,
+        months_data=months_data,
+        export_csv_by_month_json=json.dumps(export_csv_by_month, ensure_ascii=False),
         short_exam_threshold=DRUG_REVISIT_SHORT_EXAM_MIN,
         min_records=DRUG_REVISIT_MIN_RECORDS,
         top_n=TOP_N_PER_DEPT,
-        export_csv=export_csv,
         common_js=common_js,
     )
     html = env.get_template("base.html").render(
-        title=f"薬再診候補スコア {month}",
-        site_title=f"薬再診候補スコア ({month})",
+        title=f"薬再診候補スコア {default_month}",
+        site_title=f"薬再診候補スコア ({sorted_months[0]} 〜 {sorted_months[-1]})",
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
         theme_css=theme_css,
         content=body,
@@ -152,5 +167,5 @@ def build_drug_revisit(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
-    logger.info("薬再診候補スコア出力: %s", output_path)
+    logger.info("薬再診候補スコア出力: %s (%d ヶ月)", output_path, len(sorted_months))
     return output_path

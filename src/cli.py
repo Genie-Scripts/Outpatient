@@ -260,38 +260,46 @@ def _cmd_build_heatmap(
     month: str | None,
     paths: dict[str, Path] = DEFAULT_PATHS,
 ) -> None:
-    months = [month] if month else _detect_months(paths["anon_dir"])
-    latest = months[-1]
+    all_months = _detect_months(paths["anon_dir"])
+    available = [m for m in all_months if (paths["agg_root"] / m / "12_hourly_load.csv").exists()]
+    if not available:
+        raise FileNotFoundError("12_hourly_load.csv を持つ月がありません。先に aggregate を実行してください。")
+    default_month = month if month in available else available[-1]
     output_path = paths["docs_dir"] / "hourly_heatmap.html"
     build_hourly_heatmap(
-        month=latest,
+        months=available,
         aggregated_root=paths["agg_root"],
         templates_dir=paths["templates_dir"],
         output_path=output_path,
         classification_path=paths["dept_classification"],
         theme_css=_read_static(paths["theme_css"]),
         common_js=_read_static(paths["common_js"]),
+        default_month=default_month,
     )
-    print(f"✓ 曜日×時間帯ヒートマップ生成 ({latest}): {output_path}")
+    print(f"✓ 曜日×時間帯ヒートマップ生成 ({len(available)}ヶ月, 既定={default_month}): {output_path}")
 
 
 def _cmd_build_drug_revisit(
     month: str | None,
     paths: dict[str, Path] = DEFAULT_PATHS,
 ) -> None:
-    months = [month] if month else _detect_months(paths["anon_dir"])
-    latest = months[-1]
+    all_months = _detect_months(paths["anon_dir"])
+    available = [m for m in all_months if (paths["agg_root"] / m / "13_drug_revisit_score.csv").exists()]
+    if not available:
+        raise FileNotFoundError("13_drug_revisit_score.csv を持つ月がありません。先に aggregate を実行してください。")
+    default_month = month if month in available else available[-1]
     output_path = paths["docs_dir"] / "drug_revisit.html"
     build_drug_revisit(
-        month=latest,
+        months=available,
         aggregated_root=paths["agg_root"],
         templates_dir=paths["templates_dir"],
         output_path=output_path,
         classification_path=paths["dept_classification"],
         theme_css=_read_static(paths["theme_css"]),
         common_js=_read_static(paths["common_js"]),
+        default_month=default_month,
     )
-    print(f"✓ 薬再診候補スコア生成 ({latest}): {output_path}")
+    print(f"✓ 薬再診候補スコア生成 ({len(available)}ヶ月, 既定={default_month}): {output_path}")
 
 
 def _cmd_build_hub(paths: dict[str, Path] = DEFAULT_PATHS) -> None:

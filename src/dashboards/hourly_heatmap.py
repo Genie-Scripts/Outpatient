@@ -152,20 +152,33 @@ def _build_bin_meta() -> list[dict[str, Any]]:
 
 
 def build_hourly_heatmap(
-    month: str,
+    months: list[str],
     aggregated_root: Path,
     templates_dir: Path,
     output_path: Path,
     classification_path: Path,
     theme_css: str,
     common_js: str,
+    default_month: str | None = None,
 ) -> Path:
-    """曜日×時間帯ヒートマップHTMLを1枚生成する。"""
+    """曜日×時間帯ヒートマップHTMLを1枚生成する（全月埋め込み）。"""
     classifier = DeptClassifier(classification_path)
-    hourly = _load_hourly(aggregated_root, month)
+    if not months:
+        raise ValueError("months が空です")
 
-    dataset = _build_dataset(hourly, classifier)
-    filter_options = _build_filter_options(classifier, dataset)
+    sorted_months = sorted(months)
+    default_month = default_month or sorted_months[-1]
+
+    dataset_by_month: dict[str, Any] = {}
+    filter_option_union: dict[str, dict[str, str]] = {}
+    for m in sorted_months:
+        hourly = _load_hourly(aggregated_root, m)
+        ds = _build_dataset(hourly, classifier)
+        dataset_by_month[m] = ds
+        for opt in _build_filter_options(classifier, ds):
+            filter_option_union.setdefault(opt["key"], opt)
+
+    filter_options = list(filter_option_union.values())
     bin_meta = _build_bin_meta()
 
     env = Environment(
@@ -173,18 +186,19 @@ def build_hourly_heatmap(
         autoescape=select_autoescape(["html"]),
     )
     body = env.get_template("hourly_heatmap.html").render(
-        month=month,
+        months=sorted_months,
+        default_month=default_month,
         weekdays=_WEEKDAYS,
         bin_meta=bin_meta,
         filter_options=filter_options,
-        dataset_json=json.dumps(dataset, ensure_ascii=False),
+        dataset_json=json.dumps(dataset_by_month, ensure_ascii=False),
         nurse_cutoff_h=_NURSE_CUTOFF_H,
         peak_warn_hours=list(_PEAK_WARN_HOURS),
         common_js=common_js,
     )
     html = env.get_template("base.html").render(
-        title=f"曜日×時間帯ヒートマップ {month}",
-        site_title=f"曜日×時間帯ヒートマップ ({month})",
+        title=f"曜日×時間帯ヒートマップ {default_month}",
+        site_title=f"曜日×時間帯ヒートマップ ({sorted_months[0]} 〜 {sorted_months[-1]})",
         generated_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
         theme_css=theme_css,
         content=body,
@@ -193,5 +207,5 @@ def build_hourly_heatmap(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")
-    logger.info("曜日×時間帯ヒートマップ出力: %s", output_path)
+    logger.info("曜日×時間帯ヒートマップ出力: %s (%d ヶ月)", output_path, len(sorted_months))
     return output_path
