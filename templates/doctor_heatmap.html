@@ -24,7 +24,8 @@
     <label>指標：
       <select id="dh-metric">
         <option value="frequency" selected>出勤頻度率</option>
-        <option value="count">件数合計</option>
+        <option value="count">診察件数（月合計）</option>
+        <option value="duration">実診察分数（月合計）</option>
       </select>
     </label>
     <span class="site-meta" id="dh-caption"></span>
@@ -121,7 +122,10 @@
       return val > 0 ? Math.round(val * 100) + "%" : "";
     }
     if (val <= 0) return "";
-    return val >= 10 ? val.toFixed(0) : val.toFixed(0);
+    if (metric === "duration") {
+      return val >= 100 ? Math.round(val) + "m" : val.toFixed(0) + "m";
+    }
+    return val.toFixed(0);
   }
 
   function render() {
@@ -143,7 +147,7 @@
       `${month} / ${dept.label} / ${WEEKDAYS[activeWd]}曜（月内${days}日）/ 医師 ${dept.doctors.length} 名`;
 
     let maxForMetric = metric === "frequency" ? 1.0 : 0;
-    if (metric === "count") {
+    if (metric !== "frequency") {
       for (const d of dept.doctors) {
         const row = d[metric][activeWd] || [];
         for (const v of row) if (v > maxForMetric) maxForMetric = v;
@@ -174,7 +178,8 @@
         td.style.color = ratio > 0.6 ? "#fff" : "#27272a";
         const freq = d.frequency[activeWd][i] || 0;
         const cnt = d.count[activeWd][i] || 0;
-        td.title = `${d.id} / ${WEEKDAYS[activeWd]} ${i}bin: 出勤頻度率 ${Math.round(freq * 100)}% / 件数 ${cnt}`;
+        const dur = d.duration[activeWd][i] || 0;
+        td.title = `${d.id} / ${WEEKDAYS[activeWd]} ${i}bin: 出勤頻度率 ${Math.round(freq * 100)}% / 件数 ${cnt} / 実診察 ${dur.toFixed(0)}分`;
         tr.appendChild(td);
       }
       tbody.appendChild(tr);

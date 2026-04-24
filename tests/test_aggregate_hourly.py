@@ -146,6 +146,8 @@ def test_agg_doctor_hourly_frequency_and_count() -> None:
     assert r["該当日数"] == 4
     assert r["出勤頻度率"] == 1.0
     assert r["件数合計"] == 4
+    # 09:00-09:15 は 09:00bin 内に完全に収まる → 4日 × 15分 = 60分
+    assert r["実診察分数"] == 60.0
 
     u002_0930 = out[
         (out["予約担当者匿名ID"] == "DR_U002")
@@ -157,6 +159,21 @@ def test_agg_doctor_hourly_frequency_and_count() -> None:
     assert r["該当日数"] == 4
     assert r["出勤頻度率"] == 0.5
     assert r["件数合計"] == 2
+    # 09:30-09:45 は 09:30bin 内に完全に収まる → 2日 × 15分 = 30分
+    assert r["実診察分数"] == 30.0
+
+
+def test_agg_doctor_hourly_duration_across_bins() -> None:
+    # 09:20-09:50 の1回の診察は 09:00bin (09:20-09:30=10分) と 09:30bin (09:30-09:50=20分) に分割
+    rows = [_base_row(date="2026-03-02", kaishi="09:20:00", shuryo="09:50:00", doctor="DR_U001")]
+    proc = _preprocess(pd.DataFrame(rows))
+    out = _agg_doctor_hourly(proc)
+    b0900 = out[(out["bin_idx"] == 2)].iloc[0]
+    b0930 = out[(out["bin_idx"] == 3)].iloc[0]
+    assert b0900["実診察分数"] == 10.0
+    assert b0930["実診察分数"] == 20.0
+    assert b0900["件数合計"] == 1
+    assert b0930["件数合計"] == 1
 
 
 def test_agg_doctor_hourly_empty_when_no_valid() -> None:
@@ -166,7 +183,7 @@ def test_agg_doctor_hourly_empty_when_no_valid() -> None:
     assert out.empty
     assert list(out.columns) == [
         "診療科名", "予約担当者匿名ID", "曜日", "bin_idx", "bin_label",
-        "出勤日数", "該当日数", "出勤頻度率", "件数合計",
+        "出勤日数", "該当日数", "出勤頻度率", "件数合計", "実診察分数",
     ]
 
 

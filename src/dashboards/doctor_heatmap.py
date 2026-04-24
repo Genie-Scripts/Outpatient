@@ -4,6 +4,7 @@
 曜日×30分ビンの出勤パターンを可視化する。
 - 出勤頻度率: そのビンで診察した日数 / その曜日が月内に存在した日数
 - 件数合計: そのビンでの月内総診察件数
+- 実診察分数: そのビンと各診察の時間重なり分（分）の月内合計
 
 Y軸=医師匿名ID（DR_U001 等、マスターで追跡可能なまま）、X軸=30分ビン、
 曜日はタブ切替。空き枠の可視化と外来枠偏りの把握を目的とする。
@@ -69,17 +70,20 @@ def _build_dept_series(sub: pd.DataFrame) -> list[dict[str, Any]]:
         dsub = sub[sub[DOCTOR_ID_COLUMN] == did]
         freq = _empty_matrix()
         count = _empty_matrix()
+        duration = _empty_matrix()
         for _, r in dsub.iterrows():
             wd = int(r["曜日"])
             bi = int(r["bin_idx"])
             if 0 <= wd < len(_WEEKDAYS) and 0 <= bi < HEATMAP_BIN_COUNT:
                 freq[wd][bi] = float(r["出勤頻度率"])
                 count[wd][bi] = float(r["件数合計"])
+                duration[wd][bi] = float(r["実診察分数"])
         rows.append({
             "id": str(did),
             "total": int(totals.loc[did]),
             "frequency": freq,
             "count": count,
+            "duration": duration,
         })
     return rows
 

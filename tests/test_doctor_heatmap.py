@@ -27,6 +27,7 @@ def _hourly_rows() -> pd.DataFrame:
             "該当日数": 4,
             "出勤頻度率": 1.0,
             "件数合計": 12,
+            "実診察分数": 180.0,
         },
         {
             "診療科名": "泌尿器科",
@@ -38,6 +39,7 @@ def _hourly_rows() -> pd.DataFrame:
             "該当日数": 4,
             "出勤頻度率": 0.5,
             "件数合計": 3,
+            "実診察分数": 45.0,
         },
         {
             "診療科名": "眼科",
@@ -49,6 +51,7 @@ def _hourly_rows() -> pd.DataFrame:
             "該当日数": 4,
             "出勤頻度率": 0.75,
             "件数合計": 8,
+            "実診察分数": 110.0,
         },
     ])
 
@@ -59,8 +62,10 @@ def test_build_dept_series_orders_by_total_desc() -> None:
     assert [r["id"] for r in rows] == ["DR_U001", "DR_U002"]
     assert rows[0]["total"] == 12
     assert rows[0]["frequency"][0][2] == 1.0
+    assert rows[0]["duration"][0][2] == 180.0
     assert rows[1]["frequency"][0][3] == 0.5
     assert rows[1]["count"][0][3] == 3.0
+    assert rows[1]["duration"][0][3] == 45.0
 
 
 def test_build_dataset_keys_and_weekday_day_count() -> None:

@@ -277,13 +277,14 @@ def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
     - 該当日数: 当該曜日が月内に存在した日数（データ内の distinct 予約日）
     - 出勤頻度率: 出勤日数 / 該当日数（0.0-1.0）。毎週同じ枠を開けていれば 1.0
     - 件数合計: 当該ビンでの月内総診察件数（複数ビンにまたがる診察は各ビンに1カウント）
+    - 実診察分数: 当該ビンと各診察の時間重なり分（分）の月内合計
     ビンは 08:00-20:00（12時間 / 30分 = 24ビン）。
     """
     valid = df[_valid_time_mask(df)].copy()
     if valid.empty:
         return pd.DataFrame(columns=[
             "診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx", "bin_label",
-            "出勤日数", "該当日数", "出勤頻度率", "件数合計",
+            "出勤日数", "該当日数", "出勤頻度率", "件数合計", "実診察分数",
         ])
 
     day_start = HEATMAP_DAY_START_H * 60
@@ -300,11 +301,19 @@ def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
     exploded = valid.explode("bin_list").copy()
     exploded["bin_idx"] = exploded["bin_list"].astype(int)
 
+    bin_start_min = day_start + exploded["bin_idx"] * HEATMAP_BIN_MIN
+    bin_end_min = bin_start_min + HEATMAP_BIN_MIN
+    exploded["overlap_min"] = (
+        np.minimum(exploded["終了_分"], bin_end_min)
+        - np.maximum(exploded["開始_分"], bin_start_min)
+    ).clip(lower=0)
+
     per_bin = (
         exploded.groupby(["診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx"])
         .agg(
             出勤日数=("予約日", "nunique"),
             件数合計=("予約日", "size"),
+            実診察分数=("overlap_min", "sum"),
         )
         .reset_index()
     )
@@ -320,6 +329,7 @@ def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
         (merged["出勤日数"] / merged["該当日数"]).round(3),
         0.0,
     )
+    merged["実診察分数"] = merged["実診察分数"].round(1)
 
     def _label(idx: int) -> str:
         total = day_start + idx * HEATMAP_BIN_MIN
@@ -328,7 +338,7 @@ def _agg_doctor_hourly(df: pd.DataFrame) -> pd.DataFrame:
     merged["bin_label"] = merged["bin_idx"].apply(_label)
     return merged[[
         "診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx", "bin_label",
-        "出勤日数", "該当日数", "出勤頻度率", "件数合計",
+        "出勤日数", "該当日数", "出勤頻度率", "件数合計", "実診察分数",
     ]].sort_values(
         ["診療科名", DOCTOR_ID_COLUMN, "曜日", "bin_idx"]
     ).reset_index(drop=True)
